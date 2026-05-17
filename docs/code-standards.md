@@ -126,7 +126,7 @@ This is the same "functional core, imperative shell" pattern the scoring module 
 ## Auth and authorization
 
 - All authenticated routes use Better Auth middleware. Don't roll your own session check.
-- **JWT-based auth from day one.** Better Auth's `jwt()` plugin issues JWTs regardless of sign-in method (Google OAuth, magic link, password) — verified via the Better Auth docs. Web and (post-MVP) mobile clients use the same token shape, so no auth rework when mobile is added.
+- **JWT-based auth from day one.** Better Auth's `jwt()` plugin issues JWTs regardless of sign-in method (Google OAuth and Discord OAuth in MVP; future providers like magic link or password would issue the same token shape) — verified via the Better Auth docs. Web and (post-MVP) mobile clients use the same token shape, so no auth rework when mobile is added.
 - Authorization (can this user do this action?) is a separate check from authentication. Always check league membership / commissioner status before mutations — the check lives in `domain/`, called by the route.
 
 ## Server time is the source of truth

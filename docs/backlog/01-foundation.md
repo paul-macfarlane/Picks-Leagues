@@ -150,25 +150,26 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 
 ---
 
-### FND-014 — Better Auth setup (Google + magic link)
+### FND-014 — Better Auth setup (Google + Discord OAuth)
 **Status:** TODO
-**Description:** Install Better Auth in `services/api`. Configure Google OAuth and email magic link providers. Email delivery via Resend in prod, console-log in dev. Auth tables generated via Drizzle.
+**Description:** Install Better Auth in `services/api`. Configure Google and Discord OAuth providers. No email magic link, no Resend integration in MVP — keeping the auth surface minimal until there's a reason to expand it. Auth tables generated via Drizzle.
 **Acceptance criteria:**
-- `POST /api/auth/sign-in/google` initiates Google flow
-- Magic link sign-in works end-to-end (link arrives, click signs in)
+- `POST /api/auth/sign-in/social` with `provider: "google"` initiates Google flow
+- `POST /api/auth/sign-in/social` with `provider: "discord"` initiates Discord flow
 - Authenticated routes have access to `c.get('user')` via middleware
 - Sample `/api/me` route returns the current user
+- `.env.example` lists `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
 **Dependencies:** FND-005, FND-004
 
 ---
 
 ### FND-015 — Auth UI in the web app
 **Status:** TODO
-**Description:** Build sign-in page using Better Auth client SDK and shadcn Form. Includes Google button and email magic-link form. Build sign-out flow. Add an `<AuthGuard>` for protected routes.
+**Description:** Build sign-in page using Better Auth client SDK and shadcn primitives. Two OAuth buttons (Google, Discord). Build sign-out flow. Add an `<AuthGuard>` for protected routes.
 **Acceptance criteria:**
 - Unauthenticated users hitting a protected route are redirected to `/sign-in`
-- Sign-in via Google works
-- Sign-in via magic link works
+- Sign-in via Google works end-to-end
+- Sign-in via Discord works end-to-end
 - Sign-out clears session and returns to `/sign-in`
 - All four states (loading, empty/initial, error, happy) implemented
 **Dependencies:** FND-014, FND-011

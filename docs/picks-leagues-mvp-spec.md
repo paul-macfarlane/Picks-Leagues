@@ -122,7 +122,7 @@ The web client is a single-page application deployed as static files.
 
 **Tailwind CSS + shadcn/ui** provides the component foundation. The goal is shipping a functional product, not designing a custom design system.
 
-**Better Auth client SDK** handles login UI, session persistence, and JWT management. Users authenticate via social login or email magic link; the SDK provides the JWT that every API request includes.
+**Better Auth client SDK** handles login UI, session persistence, and JWT management. Users authenticate via social login (Google or Discord); the SDK provides the JWT that every API request includes.
 
 The API client is a typed module generated from the OpenAPI spec exported by the Hono API. The web client imports typed functions rather than constructing raw fetch calls. When the mobile app is built, it uses the same generated client.
 
@@ -237,7 +237,7 @@ The **MVP implementation uses ESPN's unofficial public endpoints**. These cover 
 
 ### Auth — Better Auth
 
-**Better Auth** is an open-source, self-hosted authentication library that runs inside the Hono API as middleware. It stores users and sessions in the same Neon Postgres database (using Drizzle), supports social login (Google, Apple), email magic link, and JWT issuance.
+**Better Auth** is an open-source, self-hosted authentication library that runs inside the Hono API as middleware. It stores users and sessions in the same Neon Postgres database (using Drizzle) and issues JWTs. For MVP the only enabled sign-in methods are Google and Discord OAuth — email magic link, password, and other providers can be added later if there's demand, but they aren't worth the auth surface area or the email-delivery dependency today.
 
 Chosen over Clerk and WorkOS for two reasons: cost predictability — Better Auth has no per-user pricing because it isn't a SaaS, just a library — and avoiding a SaaS dependency for something as fundamental as auth. Operations are minimal: it's a few tables in your existing database and a route handler in your existing API.
 
