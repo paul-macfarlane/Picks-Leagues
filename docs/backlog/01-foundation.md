@@ -7,7 +7,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ## Tickets
 
 ### FND-001 — Monorepo skeleton with pnpm workspaces
-**Status:** TODO
+**Status:** DONE
 **Description:** Initialize pnpm workspace with `apps/web` and `services/api` subdirs (empty package.json each). Add `.editorconfig`, `.gitignore`, and update root `README.md` to link to docs.
 **Acceptance criteria:**
 - `pnpm install` succeeds at the repo root

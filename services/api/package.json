@@ -1,0 +1,13 @@
+{
+  "name": "@picksleagues/api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "echo \"@picksleagues/api: no build step yet\" && exit 0",
+    "dev": "echo \"@picksleagues/api: no dev step yet\" && exit 0",
+    "test": "echo \"@picksleagues/api: no test step yet\" && exit 0",
+    "lint": "echo \"@picksleagues/api: no lint step yet\" && exit 0",
+    "typecheck": "echo \"@picksleagues/api: no typecheck step yet\" && exit 0"
+  }
+}

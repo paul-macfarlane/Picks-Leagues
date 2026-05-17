@@ -1,0 +1,13 @@
+{
+  "name": "@picksleagues/web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "echo \"@picksleagues/web: no build step yet\" && exit 0",
+    "dev": "echo \"@picksleagues/web: no dev step yet\" && exit 0",
+    "test": "echo \"@picksleagues/web: no test step yet\" && exit 0",
+    "lint": "echo \"@picksleagues/web: no lint step yet\" && exit 0",
+    "typecheck": "echo \"@picksleagues/web: no typecheck step yet\" && exit 0"
+  }
+}
