@@ -38,8 +38,9 @@ pnpm --filter @picksleagues/api db:migrate       # apply migrations
 ```
 
 The default `DATABASE_URL` in `.env.example` already targets the local
-container (`postgresql://postgres:postgres@localhost:5432/picksleagues`), so no
-edits are needed.
+container (`postgresql://postgres:postgres@localhost:5433/picksleagues`), so no
+edits are needed. (Host port 5433 avoids colliding with a local Postgres on the
+default 5432.)
 
 Stop it with `docker compose down`. Add `-v` to also delete the data volume
 (`picksleagues-pgdata`) for a clean slate:

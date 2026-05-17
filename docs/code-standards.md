@@ -225,6 +225,24 @@ DRY does **not** apply to:
 
 The rule of thumb: **deduplicate behavior, tolerate duplicated shape.**
 
+## Documentation and spec sync
+
+The authoritative docs (`docs/picks-leagues-mvp-spec.md`, `docs/game-types.md`,
+`docs/product-vision.md`, `docs/ui-design-standards.md`, and this file) are the
+source of truth for intent. Code that contradicts an authoritative doc is
+either a bug or a deliberate decision — never a tolerated mismatch.
+
+- When an implementation **deliberately drifts** from an authoritative doc,
+  update that doc **in the same PR** as the code change. A PR that contradicts
+  a spec without updating the spec does not pass review.
+- Fix the stale prose in place so the doc is **internally accurate** — do not
+  leave a statement that still asserts the old decision sitting next to the new
+  one. The doc states the new decision plus a one-line rationale; the deep
+  reasoning can live in the plan/PR.
+- Also add a dated one-line entry to that doc's **Revision log** so the drift
+  is discoverable without re-reading the whole document.
+- This applies to every authoritative doc, not just the MVP spec.
+
 ## Git workflow
 
 - One commit per logical change. Don't bundle unrelated fixes into one commit "while you're in there."
