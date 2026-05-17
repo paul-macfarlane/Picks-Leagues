@@ -2,11 +2,53 @@
 
 Hono on Vercel Node serverless, Drizzle + Postgres.
 
+## API server
+
+### Running locally
+
+```sh
+pnpm --filter @picksleagues/api dev
+```
+
+Starts `@hono/node-server` on `http://localhost:3000` (or `$PORT` if set).
+
+### Health endpoint
+
+```
+GET /api/health
+→ { "status": "ok", "time": "<iso8601-utc>" }
+```
+
+`time` is the server clock at the moment of the request via `clock.now()`.
+
+### Vercel entry
+
+`services/api/api/index.ts` is the Vercel Node serverless entry. It exports
+`handle(app)` from `hono/vercel`. All deploy config (`vercel.json`, routing
+rewrites, env var wiring) is owned by **FND-012** — the entry file here is
+self-contained and typechecked but not yet deploy-wired.
+
+### Adding new routes
+
+Each route module lives in `src/routes/` as its own `Hono` sub-app:
+
+```ts
+// src/routes/my-route.ts
+import { Hono } from "hono";
+export function createMyRoute(): Hono { ... }
+```
+
+Mount it in `src/app.ts`:
+
+```ts
+app.route("/api/my-route", createMyRoute());
+```
+
 ## Database setup
 
 Two ways to run: **local Docker Postgres** (recommended for day-to-day
 development) or a **Neon branch** (used by preview/production; Neon project
-provisioning is deferred to FND-005/FND-014).
+provisioning is deferred to FND-014).
 
 `db:generate` requires no DB connection and works regardless.
 

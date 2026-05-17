@@ -1,2 +1,10 @@
-// WHY: temporary bootstrap entry — replaced entirely by FND-005 (Hono API skeleton)
-export const API_NAME = "Picks Leagues API" as const;
+import { serve } from "@hono/node-server";
+
+import { createApp } from "./app";
+
+const app = createApp();
+const port = Number(process.env["PORT"] ?? 3000);
+
+serve({ fetch: app.fetch, port }, (info) => {
+  console.log(`API server listening on http://localhost:${info.port}`);
+});
