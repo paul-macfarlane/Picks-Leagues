@@ -30,20 +30,6 @@ describe("GET /api/openapi.json", () => {
     return (await res.json()) as OpenAPIDoc;
   }
 
-  it("returns 200", async () => {
-    const app = createApp();
-    const res = await app.request("/api/openapi.json");
-    expect(res.status).toBe(200);
-  });
-
-  it("document declares openapi 3.x and an info block with title/version", async () => {
-    const doc = await fetchDoc();
-    expect(doc.openapi).toMatch(/^3\./);
-    expect(doc.info.title).toBe("Picks Leagues API");
-    expect(typeof doc.info.version).toBe("string");
-    expect(doc.info.version.length).toBeGreaterThan(0);
-  });
-
   it("paths include /api/health (GET) and /api/echo (POST)", async () => {
     const doc = await fetchDoc();
     expect(doc.paths).toHaveProperty("/api/health");

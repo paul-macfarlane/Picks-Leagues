@@ -55,9 +55,6 @@ importers:
       '@hono/zod-openapi':
         specifier: 1.4.0
         version: 1.4.0(hono@4.12.19)(zod@4.4.3)
-      '@hono/zod-validator':
-        specifier: ^0.8.0
-        version: 0.8.0(hono@4.12.19)(zod@4.4.3)
       '@neondatabase/serverless':
         specifier: ^0.10.4
         version: 0.10.4

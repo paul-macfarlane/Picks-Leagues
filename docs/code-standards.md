@@ -145,6 +145,8 @@ services/api/src/
 
 A route handler that contains an `if` statement encoding a business rule is wrong — that rule belongs in `domain/`.
 
+**Every route is declared with `createRoute` + `OpenAPIHono.openapi()`** (from `@hono/zod-openapi`), built via `createOpenApiApp()` from `services/api/src/lib/openapi.ts`. Plain `Hono` routes are invisible to the OpenAPI spec generator and therefore to the typed client, so they are not allowed. One Zod schema set per route, colocated with the handler, named via `.openapi("Name")`. Validation failures return the canonical `400 ValidationError` shape via the shared `openApiDefaultHook` — never hand-roll a different error body. See `services/api/README.md` § "OpenAPI spec" for the worked example.
+
 **Domain functions are pure.** They take everything they need as arguments. They return decisions, computed state, or typed errors. They never import from `repositories/`, `db/`, `providers/`, or anything I/O.
 
 **Repositories are dumb.** Each function is `(args) → Promise<rows>` or `(args) → Promise<void>`. No business decisions inside. If you find yourself writing logic in a repo, push it back into a domain function.
