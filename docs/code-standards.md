@@ -26,6 +26,7 @@ The [product vision](./product-vision.md) and [MVP spec](./picks-leagues-mvp-spe
 - Unused imports are caught by ESLint (`@typescript-eslint/no-unused-vars` as error). They must be removed manually or by ESLint `--fix` — Prettier sorts imports but does not remove them.
 - Prefer named imports. Default imports only when a module exports a single default (e.g., React components).
 - No circular imports. Refactor when one appears; don't add `// eslint-disable`.
+- **No file extensions on relative imports** — write `./schema/index`, not `./schema/index.js` or `.ts`. Both packages use `moduleResolution: "Bundler"` and run through tsx/esbuild/Vite, none of which need the extension. The `.js`-extension Node ESM convention does not apply here; reintroducing it would mean we'd switched to `NodeNext` resolution (a deliberate, logged decision per § Documentation and spec sync), not a stylistic choice.
 
 ## Comments
 

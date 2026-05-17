@@ -10,8 +10,8 @@ import {
 import { Pool as PgPool } from "pg";
 import ws from "ws";
 
-import { isLocalDatabaseUrl } from "./is-local-db.js";
-import * as schema from "./schema/index.js";
+import { isLocalDatabaseUrl } from "./is-local-db";
+import * as schema from "./schema/index";
 
 // Either driver satisfies the same query/transaction API. Both support
 // interactive db.transaction(); the transaction discipline in

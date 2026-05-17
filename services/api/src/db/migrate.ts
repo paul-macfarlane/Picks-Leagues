@@ -8,7 +8,7 @@ import { migrate as migrateNodePg } from "drizzle-orm/node-postgres/migrator";
 import { Pool as PgPool } from "pg";
 import ws from "ws";
 
-import { isLocalDatabaseUrl } from "./is-local-db.js";
+import { isLocalDatabaseUrl } from "./is-local-db";
 
 const databaseUrl = process.env["DATABASE_URL"];
 if (!databaseUrl) {
