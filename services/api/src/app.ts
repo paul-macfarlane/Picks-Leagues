@@ -1,7 +1,6 @@
-import { Hono } from "hono";
-
 import type { Clock } from "./lib/clock";
 import { clock as defaultClock } from "./lib/clock";
+import { createOpenApiApp } from "./lib/openapi";
 import { createEchoRoute } from "./routes/echo";
 import { createHealthRoute } from "./routes/health";
 
@@ -9,12 +8,17 @@ interface AppDeps {
   clock?: Clock;
 }
 
-export function createApp(deps: AppDeps = {}): Hono {
+export function createApp(deps: AppDeps = {}) {
   const resolvedClock = deps.clock ?? defaultClock;
-  const app = new Hono();
+  const app = createOpenApiApp();
 
   app.route("/api/health", createHealthRoute({ clock: resolvedClock }));
   app.route("/api/echo", createEchoRoute());
+
+  app.doc("/api/openapi.json", {
+    openapi: "3.0.0",
+    info: { title: "Picks Leagues API", version: "0.0.0" },
+  });
 
   app.onError((err, c) => {
     console.error(err);
