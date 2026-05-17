@@ -62,7 +62,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-006 — Zod request validation middleware
-**Status:** TODO
+**Status:** DONE
 **Description:** Wire up `@hono/zod-validator`. Add a sample protected echo route to verify behavior. Establish the convention of one Zod schema per route, colocated with the handler.
 **Acceptance criteria:**
 - Route with Zod body schema rejects invalid payloads with 400 + structured error
