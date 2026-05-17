@@ -1,0 +1,5 @@
+// FND-003 implementer action: rename this file to any-usage.ts, run ESLint,
+// and assert that @typescript-eslint/no-explicit-any fires on the line below.
+function identity(x: any) {
+  return x;
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@picksleagues/api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "echo '@picksleagues/api: no build step yet'",
+    "dev": "echo '@picksleagues/api: no dev server yet'",
+    "test": "echo '@picksleagues/api: no tests yet'",
+    "lint": "echo '@picksleagues/api: no lint configured yet'"
+  }
+}

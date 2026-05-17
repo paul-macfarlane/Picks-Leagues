@@ -1,0 +1,13 @@
+{
+  "name": "@picksleagues/web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "echo '@picksleagues/web: no build step yet'",
+    "dev": "echo '@picksleagues/web: no dev server yet'",
+    "test": "echo '@picksleagues/web: no tests yet'",
+    "lint": "echo '@picksleagues/web: no lint configured yet'"
+  }
+}
