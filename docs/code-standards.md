@@ -26,6 +26,7 @@ The [product vision](./product-vision.md) and [MVP spec](./picks-leagues-mvp-spe
 - Unused imports are caught by ESLint (`@typescript-eslint/no-unused-vars` as error). They must be removed manually or by ESLint `--fix` — Prettier sorts imports but does not remove them.
 - Prefer named imports. Default imports only when a module exports a single default (e.g., React components).
 - No circular imports. Refactor when one appears; don't add `// eslint-disable`.
+- **No file extensions on relative imports** — write `./schema/index`, not `./schema/index.js` or `.ts`. Both packages use `moduleResolution: "Bundler"` and run through tsx/esbuild/Vite, none of which need the extension. The `.js`-extension Node ESM convention does not apply here; reintroducing it would mean we'd switched to `NodeNext` resolution (a deliberate, logged decision per § Documentation and spec sync), not a stylistic choice.
 
 ## Comments
 
@@ -80,6 +81,46 @@ The [product vision](./product-vision.md) and [MVP spec](./picks-leagues-mvp-spe
 - Foreign keys always have `onDelete` specified explicitly. Don't accept the default.
 - All picks store their **accepted spread at submission time**. Scoring reads from the stored spread, never the current one.
 - No `is_locked` or `is_visible` columns on picks — both are derived from `game.kickoff_time` at query time.
+
+### Transactions
+
+The primary Drizzle client uses the Neon serverless **WebSocket pooled** driver
+(`drizzle-orm/neon-serverless` + `Pool` from `@neondatabase/serverless`). This
+is mandatory: the HTTP driver (`neon-http`) does not support interactive
+transactions — `db.transaction(async (tx) => ...)` throws at runtime. Do not
+"optimize" it back to `neon-http`.
+
+Rules enforced by review (a future ESLint rule could automate the `db`-inside-
+transaction check — flagged as a future tightening, out of scope now):
+
+- Any operation performing **more than one write** that must succeed or fail
+  together MUST run inside a single `db.transaction()`. No partial-write paths.
+- Any **read-then-write where the write depends on the read for correctness**
+  (check-then-act, invariant enforcement, uniqueness/quota checks) MUST occur
+  in one transaction so the read is consistent with the write. A check outside
+  the transaction is a race, not a check.
+- The transaction callback receives a `tx` handle. Every query inside that unit
+  of work MUST use `tx`, never the outer `db`. Capturing `db` inside the
+  callback silently escapes the transaction and is a correctness bug.
+- Repository functions accept an optional executor parameter (typed as the `tx`
+  handle or the shared `db`, defaulting to `db`) so a domain-orchestrated unit
+  of work can compose multiple repository calls in one transaction. The
+  transaction boundary is **owned by the orchestration layer** (the route
+  handler) — opened around a sequence of repository calls, never opened or
+  hidden inside a single repository function. Repositories stay dumb; they
+  thread the executor through.
+- Keep transactions short. Do **not** perform external/network I/O inside a
+  transaction (ESPN/`SportsProvider` calls, HTTP, queueing). Load external data
+  first; then open the transaction for the DB writes.
+- Do not swallow a transaction rollback error — rethrow per § Error handling.
+- Prefer the smallest viable isolation level. Drizzle's default (read committed)
+  is correct for most cases; escalate only when you can demonstrate why you need
+  it and document the reason inline.
+- Do not nest `db.transaction()` calls. The `neon-serverless` driver does
+  implement nesting via Postgres SAVEPOINTs, but the rollback scope of an inner
+  transaction is subtle and easy to get wrong (an inner rollback does not undo
+  the outer one). Keep the transaction boundary at a single level owned by the
+  orchestration layer; thread the `tx` handle down instead of opening a new one.
 
 ## Backend architecture: domain → repositories → routes
 
@@ -184,6 +225,24 @@ DRY does **not** apply to:
 - Test fixtures — explicit per-test setup beats clever shared fixtures.
 
 The rule of thumb: **deduplicate behavior, tolerate duplicated shape.**
+
+## Documentation and spec sync
+
+The authoritative docs (`docs/picks-leagues-mvp-spec.md`, `docs/game-types.md`,
+`docs/product-vision.md`, `docs/ui-design-standards.md`, and this file) are the
+source of truth for intent. Code that contradicts an authoritative doc is
+either a bug or a deliberate decision — never a tolerated mismatch.
+
+- When an implementation **deliberately drifts** from an authoritative doc,
+  update that doc **in the same PR** as the code change. A PR that contradicts
+  a spec without updating the spec does not pass review.
+- Fix the stale prose in place so the doc is **internally accurate** — do not
+  leave a statement that still asserts the old decision sitting next to the new
+  one. The doc states the new decision plus a one-line rationale; the deep
+  reasoning can live in the plan/PR.
+- Also add a dated one-line entry to that doc's **Revision log** so the drift
+  is discoverable without re-reading the whole document.
+- This applies to every authoritative doc, not just the MVP spec.
 
 ## Git workflow
 

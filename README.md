@@ -11,6 +11,14 @@ Free, ad-free, independent NFL pick'em pools. See [docs/product-vision.md](docs/
 - [UI design standards](docs/ui-design-standards.md)
 - [Backlog](docs/backlog/)
 
+## Database
+
+The API uses Postgres via Drizzle ORM. Local development runs Postgres 17 in
+Docker (`docker compose up -d`); preview/production use Neon (Neon provisioning
+deferred to FND-005/FND-014). The driver is chosen automatically from the
+connection host. See [services/api/README.md](services/api/README.md) for the
+full setup and generate/migrate/studio workflow.
+
 ## Getting started
 
 **Install**

@@ -132,7 +132,7 @@ The API is a Hono application deployed to Vercel's Node.js serverless runtime.
 
 **Hono** was chosen over Express for first-class TypeScript support, built-in Zod validation middleware, modern async error propagation, and meaningfully better performance. The API surface is Express-shaped enough that there is no real learning curve.
 
-**Vercel** hosts both the API and the web SPA. Using one platform simplifies deployment, env management, and PR previews. The Node.js runtime works because Neon provides an HTTP-based serverless Postgres driver that avoids the connection exhaustion issues that affect traditional pooling libraries in short-lived serverless contexts.
+**Vercel** hosts both the API and the web SPA. Using one platform simplifies deployment, env management, and PR previews. The Node.js runtime works because Neon provides a serverless-safe Postgres driver — see the Database section for which driver and why.
 
 The API is responsible for:
 - Validating Better Auth JWTs on every authenticated request
@@ -164,7 +164,9 @@ The discipline of "no imports from outside this directory" is maintained by code
 
 ### Database — Neon (Serverless Postgres) + Drizzle
 
-**Neon** provides hosted Postgres with a serverless HTTP driver designed for short-lived function contexts and a branching feature that gives each pull request its own isolated database branch. Under the hood it is standard Postgres — there is no proprietary query language or lock-in.
+**Neon** provides hosted Postgres with serverless-safe drivers designed for short-lived function contexts and a branching feature that gives each pull request its own isolated database branch. Under the hood it is standard Postgres — there is no proprietary query language or lock-in.
+
+**Driver choice (revised — see Revision log).** Neon ships two drivers: an HTTP driver and a WebSocket-pooled driver. We use the **WebSocket-pooled driver** (`drizzle-orm/neon-serverless` + `Pool` from `@neondatabase/serverless`), *not* the HTTP driver, because the HTTP driver does not support interactive transactions (`db.transaction()`) and transactional integrity is load-bearing for this app (see [code-standards.md](code-standards.md) § Database → Transactions). The WebSocket-pooled driver is still serverless-safe — it avoids the connection-exhaustion problems traditional pooling libraries hit in short-lived function contexts. Local development runs stock Postgres 17 in Docker via the `node-postgres` driver; the driver is selected automatically from the connection host, so switching targets is configuration-only.
 
 **Drizzle** is the ORM layer. It was chosen for its TypeScript-native design (schemas are defined in TypeScript, not a separate DSL), its SQL-like query builder that stays out of the way for the complex leaderboard and standings queries this app requires, and its migration tooling. Unlike Prisma, Drizzle has no separate query engine binary and introduces no runtime overhead.
 
@@ -340,3 +342,15 @@ None of these touch business logic. The scoring module, data model, auth, and AP
 - Social features (activity feed, comments, weekly recap digests)
 - Native and web push notifications
 - Pick accuracy / season-long stats tracking
+
+---
+
+## Revision log
+
+Deliberate deviations from the originally-specified architecture. Per
+[code-standards.md](code-standards.md) § Documentation and spec sync, any code
+that drifts from this spec updates the spec in the same PR and logs it here.
+
+| Date | Ticket | Change |
+| --- | --- | --- |
+| 2026-05-17 | FND-004 | Database driver changed from the Neon HTTP driver to the Neon WebSocket-pooled driver (`drizzle-orm/neon-serverless`). Rationale: the HTTP driver does not support interactive `db.transaction()`, which is load-bearing for this app. Local development added: stock Postgres 17 in Docker via `node-postgres`, driver auto-selected by connection host. |
