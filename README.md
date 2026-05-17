@@ -11,6 +11,12 @@ Free, ad-free, independent NFL pick'em pools. See [docs/product-vision.md](docs/
 - [UI design standards](docs/ui-design-standards.md)
 - [Backlog](docs/backlog/)
 
+## Database
+
+The API uses Neon Postgres via Drizzle ORM. Neon provisioning is deferred to
+FND-005/FND-014. See [services/api/README.md](services/api/README.md) for the
+full setup and generate/migrate/studio workflow.
+
 ## Getting started
 
 **Install**

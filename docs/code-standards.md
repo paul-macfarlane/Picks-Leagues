@@ -81,6 +81,44 @@ The [product vision](./product-vision.md) and [MVP spec](./picks-leagues-mvp-spe
 - All picks store their **accepted spread at submission time**. Scoring reads from the stored spread, never the current one.
 - No `is_locked` or `is_visible` columns on picks — both are derived from `game.kickoff_time` at query time.
 
+### Transactions
+
+The primary Drizzle client uses the Neon serverless **WebSocket pooled** driver
+(`drizzle-orm/neon-serverless` + `Pool` from `@neondatabase/serverless`). This
+is mandatory: the HTTP driver (`neon-http`) does not support interactive
+transactions — `db.transaction(async (tx) => ...)` throws at runtime. Do not
+"optimize" it back to `neon-http`.
+
+Rules enforced by review (a future ESLint rule could automate the `db`-inside-
+transaction check — flagged as a future tightening, out of scope now):
+
+- Any operation performing **more than one write** that must succeed or fail
+  together MUST run inside a single `db.transaction()`. No partial-write paths.
+- Any **read-then-write where the write depends on the read for correctness**
+  (check-then-act, invariant enforcement, uniqueness/quota checks) MUST occur
+  in one transaction so the read is consistent with the write. A check outside
+  the transaction is a race, not a check.
+- The transaction callback receives a `tx` handle. Every query inside that unit
+  of work MUST use `tx`, never the outer `db`. Capturing `db` inside the
+  callback silently escapes the transaction and is a correctness bug.
+- Repository functions accept an optional executor parameter (typed as the `tx`
+  handle or the shared `db`, defaulting to `db`) so a domain-orchestrated unit
+  of work can compose multiple repository calls in one transaction. The
+  transaction boundary is **owned by the orchestration layer** (the route
+  handler) — opened around a sequence of repository calls, never opened or
+  hidden inside a single repository function. Repositories stay dumb; they
+  thread the executor through.
+- Keep transactions short. Do **not** perform external/network I/O inside a
+  transaction (ESPN/`SportsProvider` calls, HTTP, queueing). Load external data
+  first; then open the transaction for the DB writes.
+- Do not swallow a transaction rollback error — rethrow per § Error handling.
+- Prefer the smallest viable isolation level. Drizzle's default (read committed)
+  is correct for most cases; escalate only when you can demonstrate why you need
+  it and document the reason inline.
+- No nested `db.transaction()` calls. Neon Postgres does not support true nested
+  transactions via the Drizzle API; nesting silently flattens or errors depending
+  on the driver version.
+
 ## Backend architecture: domain → repositories → routes
 
 Business logic is **separated from database queries** so it can be tested without a DB. Three layers:
