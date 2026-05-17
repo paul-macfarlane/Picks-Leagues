@@ -1,31 +1,79 @@
-import { Hono } from "hono";
-import { z } from "zod";
+import { createRoute, z } from "@hono/zod-openapi";
 
-import { zBody, zHeader, zQuery } from "../lib/validation";
+import { ValidationErrorSchema, createOpenApiApp } from "../lib/openapi";
 
-const headerSchema = z.object({
-  "x-echo-token": z.string().min(1),
+const headerSchema = z
+  .object({
+    "x-echo-token": z.string().min(1),
+  })
+  .openapi("EchoHeaders");
+
+const querySchema = z
+  .object({
+    repeat: z.coerce.number().int().min(1).max(5).default(1),
+  })
+  .openapi("EchoQuery");
+
+const bodySchema = z
+  .object({
+    message: z.string().min(1).max(280),
+    shout: z.boolean().optional(),
+  })
+  .openapi("EchoRequest");
+
+const EchoResponseSchema = z
+  .object({
+    message: z.string(),
+    repeated: z.array(z.string()),
+    shout: z.boolean(),
+  })
+  .openapi("EchoResponse");
+
+const echoRoute = createRoute({
+  method: "post",
+  path: "/",
+  request: {
+    headers: headerSchema,
+    query: querySchema,
+    body: {
+      content: {
+        "application/json": {
+          schema: bodySchema,
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: "Echoes the message",
+      content: {
+        "application/json": {
+          schema: EchoResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Validation error",
+      content: {
+        "application/json": {
+          schema: ValidationErrorSchema,
+        },
+      },
+    },
+  },
 });
 
-const querySchema = z.object({
-  repeat: z.coerce.number().int().min(1).max(5).default(1),
-});
+export function createEchoRoute() {
+  const route = createOpenApiApp();
 
-const bodySchema = z.object({
-  message: z.string().min(1).max(280),
-  shout: z.boolean().optional(),
-});
-
-export function createEchoRoute(): Hono {
-  const route = new Hono();
-
-  route.post("/", zHeader(headerSchema), zQuery(querySchema), zBody(bodySchema), (c): Response => {
+  route.openapi(echoRoute, (c) => {
     const { repeat } = c.req.valid("query");
     const { message, shout } = c.req.valid("json");
 
     const repeated = Array.from({ length: repeat }, () => (shout ? message.toUpperCase() : message));
 
-    return c.json({ message, repeated, shout: shout ?? false });
+    return c.json({ message, repeated, shout: shout ?? false }, 200);
   });
 
   return route;

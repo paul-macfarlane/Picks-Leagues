@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.0.2",
-    "@hono/zod-validator": "^0.8.0",
+    "@hono/zod-openapi": "1.4.0",
     "@neondatabase/serverless": "^0.10.4",
     "drizzle-orm": "^0.43.1",
     "hono": "^4.12.19",

@@ -73,7 +73,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-007 — OpenAPI spec export
-**Status:** TODO
+**Status:** DONE
 **Description:** Configure `@hono/zod-openapi` (or `hono-openapi`). Export OpenAPI JSON at `/api/openapi.json`. The health and echo routes appear in the spec.
 **Acceptance criteria:**
 - `/api/openapi.json` returns a valid OpenAPI 3 doc

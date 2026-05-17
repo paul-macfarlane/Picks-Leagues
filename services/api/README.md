@@ -28,14 +28,52 @@ GET /api/health
 rewrites, env var wiring) is owned by **FND-012** — the entry file here is
 self-contained and typechecked but not yet deploy-wired.
 
-### Adding new routes
+## OpenAPI spec
 
-Each route module lives in `src/routes/` as its own `Hono` sub-app:
+The API exposes a machine-readable OpenAPI 3.0 document at `GET /api/openapi.json`.
+The spec is generated live from route definitions — there is no separate build step.
+
+### Fetching the spec
+
+While the dev server is running:
+
+```sh
+curl http://localhost:3000/api/openapi.json
+```
+
+FND-008's `pnpm gen:api` consumes this endpoint to emit the typed client for `apps/web`.
+
+### Convention for new routes
+
+New routes **must** be declared with `createRoute` and `OpenAPIHono.openapi()` (from
+`@hono/zod-openapi`) so they appear in the generated spec. Plain `Hono` routes are invisible
+to the spec generator.
 
 ```ts
 // src/routes/my-route.ts
-import { Hono } from "hono";
-export function createMyRoute(): Hono { ... }
+import { createRoute, z } from "@hono/zod-openapi";
+import { createOpenApiApp } from "../lib/openapi";
+
+const MyResponseSchema = z.object({ ... }).openapi("MyResponse");
+
+const myRoute = createRoute({
+  method: "get",
+  path: "/",
+  responses: {
+    200: {
+      description: "...",
+      content: { "application/json": { schema: MyResponseSchema } },
+    },
+  },
+});
+
+export function createMyRoute() {
+  const route = createOpenApiApp();
+  route.openapi(myRoute, (c) => {
+    return c.json({ ... }, 200);
+  });
+  return route;
+}
 ```
 
 Mount it in `src/app.ts`:
@@ -44,30 +82,23 @@ Mount it in `src/app.ts`:
 app.route("/api/my-route", createMyRoute());
 ```
 
+### Adding new routes
+
+Each route module lives in `src/routes/` as its own `OpenAPIHono` sub-app created via
+`createOpenApiApp()` from `src/lib/openapi.ts`.
+
 #### Request validation
 
-Every route validates its inputs at the HTTP boundary with Zod via `@hono/zod-validator`.
+Every route validates its inputs at the HTTP boundary with Zod via `@hono/zod-openapi`.
 
 **Convention:** exactly one Zod schema per route, defined at the top of the route file alongside the handler — no shared `schemas/` directory. Colocation keeps each route self-contained and reviewable.
 
-**Helpers:** use `zBody`, `zQuery`, `zHeader`, and `zParam` from `src/lib/validation.ts` rather than calling `zValidator` directly. The helpers wire the canonical `400` error shape so every validated route produces the same structured error body.
+Declare schemas with `z` from `@hono/zod-openapi` and name them via `.openapi("SchemaName")`
+so they appear in `components.schemas` in the generated spec. Use `createRoute`'s `request`
+block to declare headers, query params, and body — this wires both runtime validation and
+spec generation in one place.
 
-```ts
-// src/routes/my-route.ts
-import { z } from "zod";
-import { zBody, zQuery } from "../lib/validation";
-
-const querySchema = z.object({ page: z.coerce.number().int().min(1).default(1) });
-const bodySchema = z.object({ name: z.string().min(1) });
-
-route.post("/", zQuery(querySchema), zBody(bodySchema), (c): Response => {
-  const { page } = c.req.valid("query");
-  const { name } = c.req.valid("json");
-  ...
-});
-```
-
-**Canonical `400` error shape** — returned by every helper on validation failure:
+**Canonical `400` error shape** — returned by the `openApiDefaultHook` on any validation failure:
 
 ```jsonc
 {
@@ -78,7 +109,12 @@ route.post("/", zQuery(querySchema), zBody(bodySchema), (c): Response => {
 }
 ```
 
-`path` is prefixed by the validation target (`body` | `query` | `header` | `param`) so consumers know which part of the request failed. The `/api/echo` route is the worked example of header, query, and body validation together.
+`path` is prefixed by the validation target (`body` | `query` | `header` | `param`) so consumers
+know which part of the request failed. The `/api/echo` route is the worked example of header,
+query, and body validation together.
+
+The `ValidationErrorSchema` (from `src/lib/openapi.ts`) should be referenced in each route's
+`400` response so the generated client types errors correctly.
 
 See [`docs/code-standards.md`](../../docs/code-standards.md) § Error handling for the broader error-handling policy.
 
