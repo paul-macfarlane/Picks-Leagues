@@ -29,7 +29,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-003 — ESLint + Prettier with import boundaries
-**Status:** TODO
+**Status:** DONE
 **Description:** Configure ESLint with `@typescript-eslint` and `import/no-restricted-paths` (rule scaffolded; the scoring + domain boundary is enforced once those modules exist in later epics). Configure Prettier with `@ianvs/prettier-plugin-sort-imports` (sorts imports per code standards) and `prettier-plugin-tailwindcss` (sorts Tailwind class names). ESLint focuses on correctness, Prettier handles formatting and import order — see `docs/code-standards.md`.
 **Acceptance criteria:**
 - `pnpm lint` and `pnpm format:check` pass on the empty packages

@@ -8,6 +8,6 @@
     "build": "echo '@picksleagues/api: no build step yet'",
     "dev": "echo '@picksleagues/api: no dev server yet'",
     "test": "echo '@picksleagues/api: no tests yet'",
-    "lint": "echo '@picksleagues/api: no lint configured yet'"
+    "lint": "eslint . --max-warnings 0"
   }
 }
