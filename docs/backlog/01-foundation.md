@@ -7,7 +7,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ## Tickets
 
 ### FND-001 — Monorepo skeleton with pnpm workspaces
-**Status:** TODO
+**Status:** DONE
 **Description:** Initialize pnpm workspace with `apps/web` and `services/api` subdirs (empty package.json each). Add `.editorconfig`, `.gitignore`, and update root `README.md` to link to docs.
 **Acceptance criteria:**
 - `pnpm install` succeeds at the repo root
@@ -18,7 +18,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-002 — TypeScript strict mode + shared config
-**Status:** TODO
+**Status:** DONE
 **Description:** Add a shared `tsconfig.base.json` at the repo root with `strict: true`, `noUncheckedIndexedAccess: true`, `noImplicitOverride: true`. Both packages extend it.
 **Acceptance criteria:**
 - Both packages compile under strict mode
