@@ -43,15 +43,15 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 **Status:** DONE
 **Description:** Create a Neon project (dev branch). Configure `services/api/drizzle.config.ts`. Add the initial `users` schema (Better Auth requirement) and run the first migration. Document `DATABASE_URL` setup in `services/api/README.md`.
 **Acceptance criteria:**
-- `pnpm db:migrate` applies the migration to the local Neon branch (DEFERRED to FND-005/FND-014 — Neon not provisioned per human decision)
-- `pnpm db:studio` opens Drizzle Studio successfully (DEFERRED to FND-005/FND-014 — Neon not provisioned per human decision)
+- `pnpm db:migrate` applies the migration to the local Neon branch (DEFERRED to FND-014 — Neon not provisioned per human decision)
+- `pnpm db:studio` opens Drizzle Studio successfully (DEFERRED to FND-014 — Neon not provisioned per human decision)
 - `.env.example` lists the required `DATABASE_URL` ✓
 **Dependencies:** FND-001
 
 ---
 
 ### FND-005 — Hono API skeleton with health endpoint
-**Status:** TODO
+**Status:** DONE
 **Description:** Stand up a Hono app in `services/api/src/index.ts`. Add `/api/health` returning `{ status: "ok", time: <iso> }`. Configure for the Vercel Node.js runtime via `services/api/api/index.ts` entry.
 **Acceptance criteria:**
 - `pnpm dev` in `services/api` serves the health endpoint locally
