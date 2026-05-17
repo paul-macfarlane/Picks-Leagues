@@ -36,3 +36,29 @@ pnpm dev
 ```sh
 pnpm -r test
 ```
+
+**Lint**
+
+```sh
+pnpm lint
+```
+
+Auto-fix lint violations (formatting violations are handled by `format`, not this):
+
+```sh
+pnpm lint:fix
+```
+
+**Format**
+
+Check formatting (run in CI):
+
+```sh
+pnpm format:check
+```
+
+Auto-format the codebase (run locally before committing):
+
+```sh
+pnpm format
+```

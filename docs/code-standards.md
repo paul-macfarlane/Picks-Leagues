@@ -23,7 +23,7 @@ The [product vision](./product-vision.md) and [MVP spec](./picks-leagues-mvp-spe
 ## Imports
 
 - Order: external → internal alias (`@/`) → relative. **Sorted automatically by Prettier** via `@ianvs/prettier-plugin-sort-imports`. Don't hand-sort.
-- Unused imports are removed automatically on save (also via Prettier plugin) — there should be no "remove this import" lint warnings to chase.
+- Unused imports are caught by ESLint (`@typescript-eslint/no-unused-vars` as error). They must be removed manually or by ESLint `--fix` — Prettier sorts imports but does not remove them.
 - Prefer named imports. Default imports only when a module exports a single default (e.g., React components).
 - No circular imports. Refactor when one appears; don't add `// eslint-disable`.
 
@@ -171,7 +171,7 @@ Prettier defaults are not overridden to settle bikeshed arguments.
 ## Dead code and DRY
 
 **No unused code.**
-- `@typescript-eslint/no-unused-vars` is an error, not a warning. Unused imports are auto-removed by Prettier's sort-imports plugin.
+- `@typescript-eslint/no-unused-vars` is an error, not a warning. Unused imports and variables are caught here (Prettier's sort-imports plugin only sorts; ESLint enforcement via `--fix` or manual removal is required).
 - No commented-out code in commits. If you might need it later, that's what `git log` is for.
 - No exported symbols with zero callers. CI runs `knip` (or `ts-prune`) to surface dead exports; new dead exports block merge.
 - No empty stub files "for later."

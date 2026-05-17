@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+pnpm-lock.yaml
+apps/web/src/routeTree.gen.ts
+apps/web/src/lib/api-client/
+# Hand-authored docs — exclude to avoid reformat-everything diff on first run
+docs/**
+*.md
