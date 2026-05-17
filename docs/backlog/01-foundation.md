@@ -84,7 +84,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-008 — Typed API client generation
-**Status:** TODO
+**Status:** DONE
 **Description:** Add a script that consumes the OpenAPI spec and emits a typed TypeScript client to `apps/web/src/lib/api-client/`. Use `openapi-typescript` or `orval`. Hook into web `pnpm dev` and CI.
 **Acceptance criteria:**
 - `pnpm gen:api` regenerates the client from the running API

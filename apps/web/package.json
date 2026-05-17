@@ -6,8 +6,15 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "echo '@picksleagues/web: no build step yet'",
-    "dev": "echo '@picksleagues/web: no dev server yet'",
+    "gen:api": "pnpm --filter @picksleagues/api gen:api",
+    "dev": "pnpm run gen:api && echo '@picksleagues/web: no dev server yet (FND-009)'",
     "test": "echo '@picksleagues/web: no tests yet'",
     "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0"
   }
 }

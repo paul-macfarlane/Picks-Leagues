@@ -41,7 +41,23 @@ While the dev server is running:
 curl http://localhost:3000/api/openapi.json
 ```
 
-FND-008's `pnpm gen:api` consumes this endpoint to emit the typed client for `apps/web`.
+### Typed client generation
+
+`pnpm gen:api` generates the typed TypeScript client for `apps/web`. It runs the API
+**in-process** (no dev server required), fetches the spec from `createApp().fetch(...)`,
+then emits:
+
+- `apps/web/src/lib/api-client/openapi.json` — committed spec snapshot (staleness diff anchor)
+- `apps/web/src/lib/api-client/types.gen.ts` — generated `paths`/`components` types
+
+Both files are committed. `pnpm gen:api:check` regenerates and fails if `git diff` shows
+a change — this is the CI staleness gate (see `.github/workflows/api-client-check.yml`).
+
+The hand-authored client construction lives at `apps/web/src/lib/api.ts` (linted,
+formatted, outside the `api-client/` ESLint-ignored directory).
+
+**FND-009 handoff:** once Vite/React lands, change `apps/web/package.json` `dev` script to
+`"predev": "pnpm gen:api"` so the client is regenerated before the Vite dev server starts.
 
 ### Convention for new routes
 
