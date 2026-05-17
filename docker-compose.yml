@@ -1,0 +1,28 @@
+# Local Postgres 17 for development.
+#
+# The app's production driver (drizzle-orm/neon-serverless) speaks Neon's
+# WebSocket proxy protocol and cannot talk to a stock Postgres server. Local
+# dev therefore uses the node-postgres driver path, selected automatically by
+# the DATABASE_URL host in services/api/src/db/client.ts. See
+# services/api/README.md for setup and usage.
+services:
+  postgres:
+    image: postgres:17
+    container_name: picksleagues-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: picksleagues
+    ports:
+      - "5432:5432"
+    volumes:
+      - picksleagues-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d picksleagues"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  picksleagues-pgdata:

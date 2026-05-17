@@ -1,56 +1,83 @@
 # Picks Leagues API
 
-Hono on Vercel Node serverless, Drizzle + Neon Postgres.
+Hono on Vercel Node serverless, Drizzle + Postgres.
 
 ## Database setup
 
-> Neon is not yet provisioned (deferred to FND-005/FND-014). The instructions
-> below are the procedure for when it is. Running `db:generate` works now —
-> it requires no DB connection.
+Two ways to run: **local Docker Postgres** (recommended for day-to-day
+development) or a **Neon branch** (used by preview/production; Neon project
+provisioning is deferred to FND-005/FND-014).
 
-### Prerequisites
-
-- A [Neon](https://neon.tech) project with a dev branch.
-- The pooled connection string from the Neon dashboard for that branch.
+`db:generate` requires no DB connection and works regardless.
 
 ### Driver note
 
-The app uses the Neon serverless **WebSocket pooled** driver
-(`drizzle-orm/neon-serverless` + `Pool` from `@neondatabase/serverless`) so
-that `db.transaction()` — interactive transactions — work in the Vercel Node
-serverless runtime. The HTTP driver (`neon-http`) does not support interactive
-transactions. See [docs/code-standards.md](../../docs/code-standards.md)
-§ Database → Transactions for the enforced transaction discipline.
+The driver is selected automatically from the `DATABASE_URL` host — you never
+change code to switch targets:
 
-### 1. Configure your environment
+- **Local** (`localhost`/Docker): `drizzle-orm/node-postgres` against stock
+  Postgres 17.
+- **Neon** (dev/preview/prod): the Neon serverless **WebSocket pooled** driver
+  (`drizzle-orm/neon-serverless` + `Pool` from `@neondatabase/serverless`). The
+  Neon WebSocket driver speaks Neon's proxy protocol and cannot talk to a plain
+  Postgres server, which is why local dev uses node-postgres.
+
+Both drivers support interactive `db.transaction()`. The HTTP driver
+(`neon-http`) does not and must not be used. See
+[docs/code-standards.md](../../docs/code-standards.md) § Database → Transactions
+for the enforced transaction discipline.
+
+### Local development with Docker (recommended)
+
+Requires Docker. From the repo root:
+
+```sh
+docker compose up -d                      # start Postgres 17
+cp services/api/.env.example services/api/.env   # default points at local DB
+pnpm --filter @picksleagues/api db:migrate       # apply migrations
+```
+
+The default `DATABASE_URL` in `.env.example` already targets the local
+container (`postgresql://postgres:postgres@localhost:5432/picksleagues`), so no
+edits are needed.
+
+Stop it with `docker compose down`. Add `-v` to also delete the data volume
+(`picksleagues-pgdata`) for a clean slate:
+
+```sh
+docker compose down        # stop, keep data
+docker compose down -v     # stop, wipe the database
+```
+
+### Using a Neon branch instead
 
 ```sh
 cp services/api/.env.example services/api/.env
 ```
 
-Open `services/api/.env` and paste your Neon pooled connection string into
-`DATABASE_URL`.
+Replace `DATABASE_URL` in `services/api/.env` with the pooled connection string
+from the Neon dashboard for your branch. Everything below works the same.
 
-### 2. Regenerate migrations after a schema change
+### Regenerate migrations after a schema change
 
 ```sh
 pnpm --filter @picksleagues/api db:generate
 ```
 
-This reads the schema files in `src/db/schema/`, diffs against the committed
+Reads the schema files in `src/db/schema/`, diffs against the committed
 migrations, and emits a new SQL file into `src/db/migrations/`. No DB
 connection required. Commit the generated files alongside the schema change.
 
-### 3. Apply migrations to the branch
+### Apply migrations
 
 ```sh
 pnpm --filter @picksleagues/api db:migrate
 ```
 
-Requires `DATABASE_URL`. Runs all pending migrations in order against the
-configured Neon branch.
+Requires `DATABASE_URL`. Runs all pending migrations in order against whatever
+the connection string points at (local Docker or Neon).
 
-### 4. Open Drizzle Studio
+### Open Drizzle Studio
 
 ```sh
 pnpm --filter @picksleagues/api db:studio
