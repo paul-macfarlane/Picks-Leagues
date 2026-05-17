@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { Clock } from "../lib/clock";
 import { createApp } from "../app";
+import type { Clock } from "../lib/clock";
 
 describe("GET /api/health", () => {
   it("returns 200", async () => {

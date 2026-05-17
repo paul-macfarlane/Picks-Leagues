@@ -23,7 +23,11 @@ describe("POST /api/echo", () => {
   it("valid request returns 200 and echoes message", async () => {
     const res = await post("/api/echo", { message: "hello" });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { message: string; repeated: string[]; shout: boolean };
+    const body = (await res.json()) as {
+      message: string;
+      repeated: string[];
+      shout: boolean;
+    };
     expect(body.message).toBe("hello");
     expect(body.repeated).toHaveLength(1);
     expect(body.repeated[0]).toBe("hello");
@@ -40,28 +44,47 @@ describe("POST /api/echo", () => {
   it("invalid body returns 400 with structured error", async () => {
     const res = await post("/api/echo", {});
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string; issues: { path: string }[] };
+    const body = (await res.json()) as {
+      error: string;
+      issues: { path: string }[];
+    };
     expect(body.error).toBe("ValidationError");
     expect(body.issues.length).toBeGreaterThan(0);
-    expect(body.issues.some((issue) => issue.path.startsWith("body."))).toBe(true);
+    expect(body.issues.some((issue) => issue.path.startsWith("body."))).toBe(
+      true,
+    );
   });
 
   it("missing required header returns 400 with structured error", async () => {
-    const res = await post("/api/echo", { message: "hello" }, { "Content-Type": "application/json" });
+    const res = await post(
+      "/api/echo",
+      { message: "hello" },
+      { "Content-Type": "application/json" },
+    );
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string; issues: { path: string }[] };
+    const body = (await res.json()) as {
+      error: string;
+      issues: { path: string }[];
+    };
     expect(body.error).toBe("ValidationError");
     expect(body.issues.length).toBeGreaterThan(0);
-    expect(body.issues.some((issue) => issue.path.startsWith("header."))).toBe(true);
+    expect(body.issues.some((issue) => issue.path.startsWith("header."))).toBe(
+      true,
+    );
   });
 
   it("out-of-range query returns 400 with structured error", async () => {
     const res = await post("/api/echo?repeat=99", { message: "hello" });
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string; issues: { path: string }[] };
+    const body = (await res.json()) as {
+      error: string;
+      issues: { path: string }[];
+    };
     expect(body.error).toBe("ValidationError");
     expect(body.issues.length).toBeGreaterThan(0);
-    expect(body.issues.some((issue) => issue.path.startsWith("query."))).toBe(true);
+    expect(body.issues.some((issue) => issue.path.startsWith("query."))).toBe(
+      true,
+    );
   });
 
   it("error body shape matches the documented contract", async () => {
@@ -69,7 +92,9 @@ describe("POST /api/echo", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as unknown;
     const typedBody = body as { error: string; issues: unknown[] };
-    expect(Object.keys(typedBody)).toEqual(expect.arrayContaining(["error", "issues"]));
+    expect(Object.keys(typedBody)).toEqual(
+      expect.arrayContaining(["error", "issues"]),
+    );
     expect(typedBody.error).toBe("ValidationError");
     expect(Array.isArray(typedBody.issues)).toBe(true);
     expect(typedBody.issues.length).toBeGreaterThan(0);

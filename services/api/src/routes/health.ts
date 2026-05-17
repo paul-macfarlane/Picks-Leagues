@@ -32,7 +32,10 @@ export function createHealthRoute(deps: Deps = { clock: defaultClock }) {
   const route = createOpenApiApp();
 
   route.openapi(healthRoute, (c) => {
-    return c.json({ status: "ok" as const, time: deps.clock.now().toISOString() }, 200);
+    return c.json(
+      { status: "ok" as const, time: deps.clock.now().toISOString() },
+      200,
+    );
   });
 
   return route;
