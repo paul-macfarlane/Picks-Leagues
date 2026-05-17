@@ -115,9 +115,11 @@ transaction check — flagged as a future tightening, out of scope now):
 - Prefer the smallest viable isolation level. Drizzle's default (read committed)
   is correct for most cases; escalate only when you can demonstrate why you need
   it and document the reason inline.
-- No nested `db.transaction()` calls. Neon Postgres does not support true nested
-  transactions via the Drizzle API; nesting silently flattens or errors depending
-  on the driver version.
+- Do not nest `db.transaction()` calls. The `neon-serverless` driver does
+  implement nesting via Postgres SAVEPOINTs, but the rollback scope of an inner
+  transaction is subtle and easy to get wrong (an inner rollback does not undo
+  the outer one). Keep the transaction boundary at a single level owned by the
+  orchestration layer; thread the `tx` handle down instead of opening a new one.
 
 ## Backend architecture: domain → repositories → routes
 
