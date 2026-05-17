@@ -44,6 +44,44 @@ Mount it in `src/app.ts`:
 app.route("/api/my-route", createMyRoute());
 ```
 
+#### Request validation
+
+Every route validates its inputs at the HTTP boundary with Zod via `@hono/zod-validator`.
+
+**Convention:** exactly one Zod schema per route, defined at the top of the route file alongside the handler — no shared `schemas/` directory. Colocation keeps each route self-contained and reviewable.
+
+**Helpers:** use `zBody`, `zQuery`, `zHeader`, and `zParam` from `src/lib/validation.ts` rather than calling `zValidator` directly. The helpers wire the canonical `400` error shape so every validated route produces the same structured error body.
+
+```ts
+// src/routes/my-route.ts
+import { z } from "zod";
+import { zBody, zQuery } from "../lib/validation";
+
+const querySchema = z.object({ page: z.coerce.number().int().min(1).default(1) });
+const bodySchema = z.object({ name: z.string().min(1) });
+
+route.post("/", zQuery(querySchema), zBody(bodySchema), (c): Response => {
+  const { page } = c.req.valid("query");
+  const { name } = c.req.valid("json");
+  ...
+});
+```
+
+**Canonical `400` error shape** — returned by every helper on validation failure:
+
+```jsonc
+{
+  "error": "ValidationError",
+  "issues": [
+    { "path": "body.name", "code": "too_small", "message": "String must contain at least 1 character(s)" }
+  ]
+}
+```
+
+`path` is prefixed by the validation target (`body` | `query` | `header` | `param`) so consumers know which part of the request failed. The `/api/echo` route is the worked example of header, query, and body validation together.
+
+See [`docs/code-standards.md`](../../docs/code-standards.md) § Error handling for the broader error-handling policy.
+
 ## Database setup
 
 Two ways to run: **local Docker Postgres** (recommended for day-to-day
