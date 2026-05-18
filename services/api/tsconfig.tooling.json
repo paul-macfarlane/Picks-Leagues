@@ -6,5 +6,5 @@
     "baseUrl": ".",
     "noEmit": true
   },
-  "include": ["drizzle.config.ts"]
+  "include": ["drizzle.config.ts", "scripts"]
 }

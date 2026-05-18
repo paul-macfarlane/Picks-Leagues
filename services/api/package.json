@@ -11,7 +11,9 @@
     "lint": "eslint . --max-warnings 0",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "gen:api": "tsx scripts/gen-api-client.ts",
+    "gen:api:check": "pnpm gen:api && git -C $(git rev-parse --show-toplevel) diff --exit-code -- apps/web/src/lib/api-client"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.2",
@@ -29,6 +31,7 @@
     "@types/ws": "^8.5.14",
     "dotenv": "^16.5.0",
     "drizzle-kit": "^0.31.1",
+    "openapi-typescript": "7.13.0",
     "tsx": "^4.19.4",
     "vitest": "^4.1.6"
   }

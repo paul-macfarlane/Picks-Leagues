@@ -11,10 +11,21 @@ type OpenAPIDoc = {
       string,
       {
         requestBody?: {
-          content?: Record<string, { schema?: { required?: string[]; properties?: Record<string, unknown> } }>;
+          content?: Record<
+            string,
+            {
+              schema?: {
+                required?: string[];
+                properties?: Record<string, unknown>;
+              };
+            }
+          >;
         };
         parameters?: { name: string; in: string }[];
-        responses?: Record<string, { content?: Record<string, { schema?: { $ref?: string } }> }>;
+        responses?: Record<
+          string,
+          { content?: Record<string, { schema?: { $ref?: string } }> }
+        >;
       }
     >
   >;
@@ -128,7 +139,10 @@ describe("GET /api/openapi.json", () => {
       body: JSON.stringify({}),
     });
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string; issues: { path: string }[] };
+    const body = (await res.json()) as {
+      error: string;
+      issues: { path: string }[];
+    };
     expect(body.error).toBe("ValidationError");
     expect(body.issues.length).toBeGreaterThan(0);
     expect(body.issues.some((i) => i.path.startsWith("body."))).toBe(true);

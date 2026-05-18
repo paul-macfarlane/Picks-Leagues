@@ -1,6 +1,5 @@
-import { OpenAPIHono } from "@hono/zod-openapi";
+import { OpenAPIHono, z } from "@hono/zod-openapi";
 import type { Hook } from "@hono/zod-openapi";
-import { z } from "@hono/zod-openapi";
 import type { Env } from "hono";
 import type { ZodIssue } from "zod";
 
@@ -34,7 +33,10 @@ const targetMap: Record<string, ValidationTarget> = {
   form: "body",
 };
 
-export function formatZodIssues(target: ValidationTarget, issues: ZodIssue[]): FormattedIssue[] {
+export function formatZodIssues(
+  target: ValidationTarget,
+  issues: ZodIssue[],
+): FormattedIssue[] {
   return issues.map((issue) => ({
     path: [target, ...issue.path].join("."),
     code: issue.code,
@@ -42,7 +44,10 @@ export function formatZodIssues(target: ValidationTarget, issues: ZodIssue[]): F
   }));
 }
 
-export const openApiDefaultHook: Hook<unknown, Env, string, unknown> = (result, c) => {
+export const openApiDefaultHook: Hook<unknown, Env, string, unknown> = (
+  result,
+  c,
+) => {
   if (result.success) return;
   // `target` is present at runtime but not in the Hook generic's result type
   const rawTarget = (result as { target?: string }).target ?? "json";

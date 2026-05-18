@@ -1,6 +1,6 @@
 import { createRoute, z } from "@hono/zod-openapi";
 
-import { ValidationErrorSchema, createOpenApiApp } from "../lib/openapi";
+import { createOpenApiApp, ValidationErrorSchema } from "../lib/openapi";
 
 const headerSchema = z
   .object({
@@ -71,7 +71,9 @@ export function createEchoRoute() {
     const { repeat } = c.req.valid("query");
     const { message, shout } = c.req.valid("json");
 
-    const repeated = Array.from({ length: repeat }, () => (shout ? message.toUpperCase() : message));
+    const repeated = Array.from({ length: repeat }, () =>
+      shout ? message.toUpperCase() : message,
+    );
 
     return c.json({ message, repeated, shout: shout ?? false }, 200);
   });

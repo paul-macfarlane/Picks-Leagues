@@ -13,6 +13,8 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint . --max-warnings 0",
+    "gen:api": "pnpm --filter @picksleagues/api gen:api",
+    "gen:api:check": "pnpm --filter @picksleagues/api gen:api:check",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

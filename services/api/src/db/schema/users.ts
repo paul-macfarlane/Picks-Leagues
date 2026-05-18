@@ -5,7 +5,7 @@
 // WHY: This is a minimal bootstrap table whose sole purpose is to prove the
 // migration pipeline. FND-014 owns the authoritative Better Auth schema and
 // will reconcile against (or supersede) this table with a follow-up migration.
-import { boolean, text, timestamp, pgTable } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),

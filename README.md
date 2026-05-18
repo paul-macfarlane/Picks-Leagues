@@ -33,6 +33,16 @@ pnpm install
 pnpm -r build
 ```
 
+**Generate the typed API client**
+
+```sh
+pnpm gen:api
+```
+
+Runs the API in-process, fetches the OpenAPI spec, and emits
+`apps/web/src/lib/api-client/openapi.json` and `types.gen.ts`.
+Run this after any route schema change, then commit the generated files.
+
 **Dev**
 
 ```sh
