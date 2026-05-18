@@ -195,3 +195,25 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 - Closing the PR removes the branch
 - Preview deploy uses the PR's branch, not main
 **Dependencies:** FND-012, FND-004
+
+---
+
+### FND-018 — Dependabot dependency + security updates
+**Status:** TODO
+**Description:** Add `.github/dependabot.yml` so the repo gets automated PRs for security advisories and version bumps. Cover the npm ecosystem across the pnpm workspace (`apps/web`, `services/api`, root) and the `github-actions` ecosystem (keep workflow action versions current). Group non-security minor/patch bumps into a single weekly PR to keep noise low; security updates open immediately. Free on this public repo (unlimited Actions minutes). Once FND-016 exists, the CI pipeline validates each Dependabot PR before merge.
+**Acceptance criteria:**
+- `dependabot.yml` covers npm (all workspace manifests) + github-actions
+- Security-advisory PRs open automatically; routine bumps are grouped weekly
+- A test bump PR is created and passes CI (or, pre-FND-016, builds locally)
+**Dependencies:** FND-001
+
+---
+
+### FND-019 — Drizzle migration drift CI check
+**Status:** TODO
+**Description:** CI gate, in the spirit of FND-008's API-client staleness check: a job runs `drizzle-kit` against the committed schema and fails the PR if the schema changed but no corresponding migration was committed (silent migration drift is a real failure class with Neon). Add a matching local script (`pnpm db:check` or similar) so the same check is runnable before push. Fold into FND-016's pipeline if it lands first; otherwise a small standalone workflow that FND-016 later absorbs.
+**Acceptance criteria:**
+- CI fails when the Drizzle schema is modified without a committed migration
+- A local script reproduces the check and exits non-zero on drift
+- Passes on a clean tree; negative test (schema edit without migration) fails as expected
+**Dependencies:** FND-004, FND-016
