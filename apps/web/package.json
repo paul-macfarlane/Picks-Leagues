@@ -5,16 +5,25 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "echo '@picksleagues/web: no build step yet'",
+    "build": "pnpm run gen:api && tsc --noEmit -p tsconfig.json && vite build",
     "gen:api": "pnpm --filter @picksleagues/api gen:api",
-    "dev": "pnpm run gen:api && echo '@picksleagues/web: no dev server yet (FND-009)'",
+    "dev": "pnpm run gen:api && vite",
     "test": "echo '@picksleagues/web: no tests yet'",
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "openapi-fetch": "0.17.0"
+    "@tanstack/react-router": "^1.170.4",
+    "@tanstack/react-router-devtools": "^1.167.0",
+    "openapi-fetch": "0.17.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
   },
   "devDependencies": {
-    "openapi-typescript": "7.13.0"
+    "@tanstack/router-plugin": "^1.168.6",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "openapi-typescript": "7.13.0",
+    "vite": "^8.0.13"
   }
 }
