@@ -106,7 +106,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-010 — Tailwind + shadcn install with theme
-**Status:** TODO
+**Status:** DONE
 **Description:** Install Tailwind and shadcn/ui. Configure stone base + amber accent per UI design standards. Add light/dark theme provider with system-preference default. Install a starter shadcn set: Button, Card, Input, Label, Form, Dialog, Sonner (toast), Skeleton, Sheet, Table, Badge.
 **Acceptance criteria:**
 - `/` renders a Button using shadcn primitives
