@@ -39,7 +39,7 @@ shadcn already establishes a set of CSS vars (`--background`, `--foreground`, `-
 
 Defined in `apps/web/src/styles/globals.css` under `:root` (light) and `.dark` (dark). Mapped into the Tailwind theme via the `@theme inline` block in `globals.css` (Tailwind v4 CSS-first config — no `tailwind.config.ts`).
 
-**Dark mode is required from day one.** Configured via the standard shadcn theme provider with system-preference default. Every var has both a light and a dark value. Light-only screens are not "done." Verify both themes for every UI ticket.
+**Dark mode is required from day one.** Configured via a custom context-based `ThemeProvider` (`apps/web/src/components/theme-provider.tsx`) — system / light / dark, system-preference default, persisted to `localStorage` (`picksleagues-ui-theme`), reactive to OS `prefers-color-scheme` changes while in system mode. We do not use `next-themes` (Next-specific); this is the shadcn Vite dark-mode pattern. Every var has both a light and a dark value. Light-only screens are not "done." Verify both themes for every UI ticket.
 
 ### Typography
 
