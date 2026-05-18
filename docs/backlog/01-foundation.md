@@ -95,8 +95,8 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-009 — Vite + React + TanStack Router skeleton
-**Status:** TODO
-**Description:** Initialize `apps/web` as a Vite + React 18 + TypeScript app. Configure TanStack Router with file-based routing (`apps/web/src/routes/`). Add a single `/` route showing "Hello Picks Leagues."
+**Status:** DONE
+**Description:** Initialize `apps/web` as a Vite + React 19 + TypeScript app. Configure TanStack Router with file-based routing (`apps/web/src/routes/`). Add a single `/` route showing "Hello Picks Leagues." _(Originally specified React 18; updated to React 19 during FND-009 planning — React 19 has been stable since Dec 2024, TanStack Router and all downstream FND web tickets support it, and starting on the current major avoids a later migration ticket.)_
 **Acceptance criteria:**
 - `pnpm dev` opens the app at `localhost:5173`
 - TanStack Router devtools available in dev
