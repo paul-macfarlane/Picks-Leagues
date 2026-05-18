@@ -37,13 +37,13 @@ shadcn already establishes a set of CSS vars (`--background`, `--foreground`, `-
 | `--push` / `--push-foreground` | `stone-500` / white | `stone-400` / `stone-950` | Push, tie, neutral outcome |
 | `--warning` / `--warning-foreground` | `amber-600` / white | `amber-400` / `stone-950` | Deadline approaching, attention-needed |
 
-Defined in `apps/web/src/styles/globals.css` under `:root` (light) and `.dark` (dark). Mapped into the Tailwind theme via `tailwind.config.ts`.
+Defined in `apps/web/src/styles/globals.css` under `:root` (light) and `.dark` (dark). Mapped into the Tailwind theme via the `@theme inline` block in `globals.css` (Tailwind v4 CSS-first config — no `tailwind.config.ts`).
 
 **Dark mode is required from day one.** Configured via the standard shadcn theme provider with system-preference default. Every var has both a light and a dark value. Light-only screens are not "done." Verify both themes for every UI ticket.
 
 ### Typography
 
-- **Font:** Inter, loaded via `@fontsource/inter`. System fallback stack.
+- **Font:** Inter, loaded via `@fontsource-variable/inter` (variable font; covers all required weights in a single file). System fallback stack.
 - **Scale:** Tailwind defaults (`text-xs` through `text-5xl`). Don't introduce custom sizes.
 - **Weights:** 400 (body), 500 (emphasis, labels), 600 (headings, buttons), 700 (rare — large numbers in standings).
 - **Line height:** `leading-relaxed` for body copy, `leading-tight` for headings.
@@ -150,3 +150,9 @@ This is the surface the player sees, so it gets the same care as the visual desi
 - Keyboard navigation verified
 - No hover-dependent interactions
 - Loading + empty + error states verified
+
+## Revision log
+
+| Date | Change |
+|---|---|
+| 2026-05-17 | FND-010: switched to Tailwind v4 CSS-first config (`@theme inline` in `globals.css`, no `tailwind.config.ts`) and `@fontsource-variable/inter` (variable font) instead of `@fontsource/inter`. shadcn dark mode implemented with custom ThemeProvider (no `next-themes`). |

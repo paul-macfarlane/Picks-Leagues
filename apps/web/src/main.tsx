@@ -1,6 +1,9 @@
+import "@fontsource-variable/inter";
+import "./styles/globals.css";
+
+import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createRouter, RouterProvider } from "@tanstack/react-router";
 
 import { routeTree } from "./routeTree.gen";
 
@@ -14,7 +17,9 @@ const router = createRouter({ routeTree });
 
 const rootEl = document.getElementById("root");
 if (!rootEl) {
-  throw new Error("Root element not found — expected <div id='root'> in index.html");
+  throw new Error(
+    "Root element not found — expected <div id='root'> in index.html",
+  );
 }
 
 createRoot(rootEl).render(
