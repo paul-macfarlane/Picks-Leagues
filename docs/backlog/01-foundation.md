@@ -118,7 +118,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-011 — TanStack Query setup
-**Status:** TODO
+**Status:** DONE
 **Description:** Install TanStack Query and Query Devtools. Configure a QueryClient at the app root. Add a demo query against `/api/health` using the generated client.
 **Acceptance criteria:**
 - `/` successfully fetches and displays the API health response via TanStack Query
