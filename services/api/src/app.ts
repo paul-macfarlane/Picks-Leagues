@@ -6,7 +6,7 @@ import { createOpenApiApp } from "./lib/openapi";
 import { createEchoRoute } from "./routes/echo";
 import { createHealthRoute } from "./routes/health";
 
-// Production origin(s) will be injected via env — FND-012's job.
+// Dev-only: production is same-origin, no CORS needed.
 const DEV_ORIGINS = ["http://localhost:5173"];
 
 interface AppDeps {

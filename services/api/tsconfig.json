@@ -6,5 +6,5 @@
     "baseUrl": ".",
     "noEmit": true
   },
-  "include": ["src", "api"]
+  "include": ["src"]
 }

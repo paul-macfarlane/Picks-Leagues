@@ -2,10 +2,9 @@ import createClient from "openapi-fetch";
 
 import type { components, paths } from "./api-client/types.gen";
 
-// WHY: env-driven base URL is wired in FND-012 (deploy config); Vite's
-// import.meta.env typing lands in FND-009. Use a constant for now so
-// apps/web typecheck stays clean without Vite client types.
-const baseUrl = "http://localhost:3000";
+// Relative same-origin by default; an explicit override is supported via
+// VITE_API_BASE_URL for cases we don't use today (e.g., a future mobile/local-API target).
+const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export const apiClient = createClient<paths>({ baseUrl });
 
