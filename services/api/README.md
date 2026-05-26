@@ -23,10 +23,14 @@ GET /api/health
 
 ### Vercel entry
 
-`services/api/api/index.ts` is the Vercel Node serverless entry. It exports
-`handle(app)` from `hono/vercel`. All deploy config (`vercel.json`, routing
-rewrites, env var wiring) is owned by **FND-012** — the entry file here is
-self-contained and typechecked but not yet deploy-wired.
+`services/api/src/vercel-entry.ts` is bundled by esbuild into an optional
+catch-all route at `api/[[...slug]].js` at the repo root via `pnpm build:api`.
+The `[[...slug]]` filename is Vercel's optional catch-all syntax — it tells
+Vercel to forward `/api` and any path beneath it (e.g. `/api/health`) to this
+function with the full URL intact, so Hono can dispatch internally. The `/api/`
+directory is gitignored — it is produced only during the Vercel build
+(`pnpm build:api` runs as part of the `buildCommand` in `vercel.json`). Deploy
+config (`vercel.json`, routing rewrites) lives at the repo root.
 
 ## OpenAPI spec
 

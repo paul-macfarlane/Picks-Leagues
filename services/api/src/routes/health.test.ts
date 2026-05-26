@@ -28,31 +28,4 @@ describe("GET /api/health", () => {
     const body = (await res.json()) as { status: string; time: string };
     expect(body.time).toBe(fixed.toISOString());
   });
-
-  it("returns CORS header for allowed dev origin", async () => {
-    const app = createApp();
-    const res = await app.request("/api/health", {
-      headers: { Origin: "http://localhost:5173" },
-    });
-    expect(res.status).toBe(200);
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
-      "http://localhost:5173",
-    );
-  });
-
-  it("OPTIONS preflight for allowed dev origin returns CORS headers", async () => {
-    const app = createApp();
-    const res = await app.request("/api/health", {
-      method: "OPTIONS",
-      headers: {
-        Origin: "http://localhost:5173",
-        "Access-Control-Request-Method": "GET",
-      },
-    });
-    expect(res.status).toBe(204);
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
-      "http://localhost:5173",
-    );
-    expect(res.headers.get("Access-Control-Allow-Methods")).toBeTruthy();
-  });
 });

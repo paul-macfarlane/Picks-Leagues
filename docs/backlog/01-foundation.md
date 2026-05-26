@@ -129,7 +129,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-012 — Vercel deployment config
-**Status:** TODO
+**Status:** DONE
 **Description:** Add `vercel.json` configuring the web SPA build and the API serverless function. Confirm both deploy to a single Vercel project. Document required env vars in `docs/deploy.md`.
 **Acceptance criteria:**
 - A preview deploy succeeds end-to-end (web + API)

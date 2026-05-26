@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "pnpm -r build",
+    "build:api": "esbuild services/api/src/vercel-entry.ts --bundle --format=esm --platform=node --target=node22 --outfile='api/[[...slug]].js'",
     "dev": "pnpm -r --parallel dev",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
@@ -22,6 +23,7 @@
   "devDependencies": {
     "@eslint/js": "^9",
     "@ianvs/prettier-plugin-sort-imports": "^4",
+    "esbuild": "^0.28.0",
     "eslint": "^9",
     "eslint-config-prettier": "^10",
     "eslint-import-resolver-typescript": "^3",
