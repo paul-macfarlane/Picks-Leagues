@@ -92,7 +92,7 @@ Run these checks after each deploy to confirm the full web → API path is worki
 - **Locally:** Vite proxy forwards `/api/*` to the API dev server at `:3000`.
 - **Deployed:** Vercel routes `/api/*` directly to the serverless function at `api/[[...slug]].js` (bundled from `services/api/src/vercel-entry.ts` by `pnpm build:api`).
 
-This same-origin approach means no CORS is needed in production. The dev-only CORS middleware in `services/api/src/app.ts` exists only for the two-port local setup. It will be revisited when FND-014 settles the production CORS posture for auth-with-credentials.
+Both environments are same-origin from the browser's perspective, so CORS is not configured on the API — the middleware is absent intentionally. If FND-014 introduces a cross-origin client (mobile, third-party), a finite allowlist with `credentials: true` will be added then; never a wildcard.
 
 ## Future env-var consumers
 
