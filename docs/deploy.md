@@ -10,25 +10,36 @@ Steps:
 
 1. Create a new Vercel project and link it to the GitHub repository.
 2. Set **Root Directory** to `.` (the repo root). Do not set it to a subdirectory.
-3. Set **Framework Preset** to **Other**. This matches `"framework": null` in `vercel.json` and prevents Vercel's auto-detector from overriding our custom build config.
-4. Leave **Build Command**, **Output Directory**, and **Install Command** at their defaults — Vercel reads them from `vercel.json`.
+3. Leave **Build Command**, **Output Directory**, and **Install Command** at their defaults — Vercel reads `buildCommand` and `installCommand` from `vercel.json`. The build writes `.vercel/output/` directly (Build Output API), so no `outputDirectory` is needed.
 
 ### Build pipeline
 
-The `buildCommand` in `vercel.json` chains two steps:
+`pnpm vercel:build` runs `scripts/build-vercel-output.sh`, which writes Vercel's
+[Build Output API](https://vercel.com/docs/build-output-api/v3) format directly
+to `.vercel/output/`:
 
 ```
-pnpm --filter @picksleagues/web build && pnpm build:api
+.vercel/output/
+├── config.json                    # routes + spec version
+├── static/                        # SPA static files (from apps/web/dist)
+└── functions/
+    └── api.func/
+        ├── .vc-config.json        # function runtime config
+        └── index.js               # bundled function
 ```
 
-`pnpm build:api` runs esbuild to bundle `services/api/src/vercel-entry.ts` into a
-self-contained ESM file at `api/[[...slug]].js`. The `[[...slug]]` filename uses
-Vercel's optional catch-all syntax, which makes the function handle `/api` and all
-subpaths beneath it (e.g. `/api/health`). Without the catch-all, Vercel's
-filesystem routing would only match the literal URL `/api`, and any `/api/*`
-request would 404 before reaching Hono. The `/api/` directory is gitignored and
-exists only during the build; Vercel discovers `api/[[...slug]].js` as the
-serverless function entry after the build step writes it.
+The script:
+1. Builds the web app (`pnpm --filter @picksleagues/web build`) and copies `apps/web/dist/` into `.vercel/output/static/`.
+2. Runs esbuild to bundle `services/api/src/vercel-entry.ts` → `.vercel/output/functions/api.func/index.js`.
+3. Writes `.vercel/output/functions/api.func/.vc-config.json` declaring the Node 22 runtime.
+4. Writes `.vercel/output/config.json` with three routes: `/api/*` → function, filesystem precedence for static assets, SPA fallback to `index.html`.
+
+When `.vercel/output/` is present after a build, Vercel reads it as the canonical
+deploy manifest — no auto-detection is involved. This is why the switch was made:
+Vercel's file-system auto-detection did not reliably pick up the bundled function
+file (`api/[[...slug]].js`) that CI/CD builds produced from git source, even
+though local `vercel --prod` worked (the bundle was already on disk). The Build
+Output API eliminates that ambiguity.
 
 Bundling instead of deploying TypeScript source is necessary because Vercel's
 `@vercel/node` builder hard-codes `moduleResolution: nodenext` (for Node ESM
@@ -90,7 +101,7 @@ Run these checks after each deploy to confirm the full web → API path is worki
 `pnpm dev` runs the Vite dev server at `:5173` and the API at `:3000`. The Vite dev server proxies `/api/*` requests to `:3000`, so the web app uses relative URLs (`/api/health`) in both environments:
 
 - **Locally:** Vite proxy forwards `/api/*` to the API dev server at `:3000`.
-- **Deployed:** Vercel routes `/api/*` directly to the serverless function at `api/[[...slug]].js` (bundled from `services/api/src/vercel-entry.ts` by `pnpm build:api`).
+- **Deployed:** Vercel routes `/api/*` directly to the serverless function at `.vercel/output/functions/api.func/index.js` (bundled from `services/api/src/vercel-entry.ts` by `pnpm vercel:build`).
 
 Both environments are same-origin from the browser's perspective, so CORS is not configured on the API — the middleware is absent intentionally. If FND-014 introduces a cross-origin client (mobile, third-party), a finite allowlist with `credentials: true` will be added then; never a wildcard.
 
