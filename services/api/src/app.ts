@@ -1,7 +1,4 @@
-import { cors } from "hono/cors";
-
 import { createAuth } from "./auth/index";
-import { getAllowedOrigins } from "./auth/cors";
 import { createSessionMiddleware } from "./auth/middleware";
 import type { Clock } from "./lib/clock";
 import { clock as defaultClock } from "./lib/clock";
@@ -22,17 +19,6 @@ export function createApp(deps: AppDeps = {}) {
   const resolvedClock = deps.clock ?? defaultClock;
   const authInstance = deps.auth ?? createAuth();
   const app = createOpenApiApp();
-
-  app.use(
-    "/api/auth/*",
-    cors({
-      origin: getAllowedOrigins(),
-      allowHeaders: ["Content-Type", "Authorization"],
-      allowMethods: ["POST", "GET", "OPTIONS"],
-      credentials: true,
-      maxAge: 600,
-    }),
-  );
 
   app.on(["POST", "GET"], "/api/auth/*", (c) =>
     authInstance.handler(c.req.raw),

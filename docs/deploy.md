@@ -109,7 +109,7 @@ Run these checks after each deploy to confirm the full web → API path is worki
 - **Locally:** Vite proxy forwards `/api/*` to the API dev server at `:3000`.
 - **Deployed:** Vercel routes `/api/*` directly to the serverless function at `.vercel/output/functions/api.func/index.js` (bundled from `services/api/src/vercel-entry.ts` by `pnpm vercel:build`).
 
-Both environments are same-origin from the browser's perspective for all standard routes. CORS is configured only for `/api/auth/*` (the Better Auth handler surface) with a finite allowlist (`credentials: true`) covering: localhost dev origins (`http://localhost:5173`, `http://localhost:3000`), the `BETTER_AUTH_URL` value for the running environment, and Vercel preview deploys matching the `picksleagues-*.vercel.app` pattern. All other API routes (`/api/health`, `/api/echo`, `/api/me`, `/api/cron/*`) remain CORS-free because they're always served same-origin.
+Both environments are same-origin from the browser's perspective for every route — including Better Auth's `/api/auth/*`. The web app always hits the API via a relative URL, which the Vite proxy resolves locally and Vercel resolves on the same deployed domain. No CORS middleware is wired on the API. If a cross-origin consumer ever appears (e.g., a native mobile client hitting prod directly, or a third-party embed), CORS will be added then with a finite allowlist and `credentials: true` — never wildcard.
 
 ## Future env-var consumers
 

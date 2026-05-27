@@ -51,10 +51,6 @@ Better Auth's major version):
 pnpm --filter @picksleagues/api auth:generate
 ```
 
-**CORS** is applied only to `/api/auth/*` with `credentials: true` and a finite
-allowlist (localhost dev origins + `BETTER_AUTH_URL` + Vercel preview pattern).
-All other routes remain CORS-free (same-origin).
-
 **`/api/me`** (`src/routes/me.ts`) is the canonical example of an authenticated
 route: reads `c.get("user")`, returns 401 if null, returns a narrow user
 projection otherwise. It uses `createRoute` and appears in the OpenAPI spec.
