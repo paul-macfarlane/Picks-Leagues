@@ -108,6 +108,19 @@ describe("GET /api/openapi.json", () => {
     expect(schemas).toContain("EchoResponse");
   });
 
+  it("paths include /api/me (GET)", async () => {
+    const doc = await fetchDoc();
+    expect(doc.paths).toHaveProperty("/api/me");
+    expect(doc.paths["/api/me"]).toHaveProperty("get");
+  });
+
+  it("components.schemas includes MeResponse and Unauthorized", async () => {
+    const doc = await fetchDoc();
+    const schemas = Object.keys(doc.components?.schemas ?? {});
+    expect(schemas).toContain("MeResponse");
+    expect(schemas).toContain("Unauthorized");
+  });
+
   it("regression: GET /api/health still returns 200 with status and time", async () => {
     const app = createApp({ cronSecret: "test-secret" });
     const res = await app.request("/api/health");

@@ -18,13 +18,6 @@ import * as schema from "./schema/index";
 // docs/code-standards.md § Database → Transactions applies to both.
 export type Db = NeonDatabase<typeof schema> | NodePgDatabase<typeof schema>;
 
-const databaseUrl = process.env["DATABASE_URL"];
-if (!databaseUrl) {
-  throw new Error(
-    "DATABASE_URL is not set. Copy services/api/.env.example to services/api/.env and set a connection string (local Docker Postgres or a Neon branch).",
-  );
-}
-
 // WHY: the Neon serverless WebSocket driver speaks Neon's proxy protocol and
 // cannot talk to a plain Postgres server. Local development runs stock
 // Postgres 17 in Docker (node-postgres driver). Neon dev/preview/prod use the
@@ -40,4 +33,20 @@ function createDb(connectionString: string): Db {
   return drizzleNeon(new NeonPool({ connectionString }), { schema });
 }
 
-export const db: Db = createDb(databaseUrl);
+let cachedDb: Db | undefined;
+
+// WHY: lazy so that importing db/client.ts does not fail-fast at module load
+// time in contexts where DATABASE_URL is absent (e.g. spec generation). The
+// fail-fast still fires on the first actual request to a real database.
+export function getDb(): Db {
+  if (!cachedDb) {
+    const databaseUrl = process.env["DATABASE_URL"];
+    if (!databaseUrl) {
+      throw new Error(
+        "DATABASE_URL is not set. Copy services/api/.env.example to services/api/.env and set a connection string (local Docker Postgres or a Neon branch).",
+      );
+    }
+    cachedDb = createDb(databaseUrl);
+  }
+  return cachedDb;
+}

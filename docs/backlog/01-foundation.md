@@ -151,7 +151,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-014 — Better Auth setup (Google + Discord OAuth)
-**Status:** TODO
+**Status:** DONE
 **Description:** Install Better Auth in `services/api`. Configure Google and Discord OAuth providers. No email magic link, no Resend integration in MVP — keeping the auth surface minimal until there's a reason to expand it. Auth tables generated via Drizzle.
 **Acceptance criteria:**
 - `POST /api/auth/sign-in/social` with `provider: "google"` initiates Google flow

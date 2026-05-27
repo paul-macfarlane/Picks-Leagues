@@ -21,6 +21,44 @@ GET /api/health
 
 `time` is the server clock at the moment of the request via `clock.now()`.
 
+### Auth endpoints
+
+Better Auth handles all routes under `/api/auth/*` internally. These routes are
+not declared with `createRoute` and do not appear in the OpenAPI spec — this is
+a deliberate exception to the convention below. The web app uses Better Auth's
+own client SDK (FND-015) to hit these routes, not the generated typed client.
+
+**Session middleware** (`src/auth/middleware.ts`) runs on all routes _after_ the
+Better Auth handler and sets `c.get("user")` and `c.get("session")` from the
+request cookie. Routes read these to check authentication:
+
+```ts
+const user = c.get("user");
+if (!user) return c.json({ error: "Unauthorized" }, 401);
+```
+
+**Auth instance** lives in `src/auth/index.ts`. `createAuth(deps?)` is the
+factory; in production it reads `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and
+optionally `GOOGLE_CLIENT_ID` / `DISCORD_CLIENT_ID` from the environment.
+OAuth providers are omitted silently when their credentials are absent — the API
+boots locally without Google/Discord secrets. Configure them in `.env` for
+end-to-end OAuth testing.
+
+**Regenerate Better Auth's reference schema** (rarely needed; only if upgrading
+Better Auth's major version):
+
+```sh
+pnpm --filter @picksleagues/api auth:generate
+```
+
+**CORS** is applied only to `/api/auth/*` with `credentials: true` and a finite
+allowlist (localhost dev origins + `BETTER_AUTH_URL` + Vercel preview pattern).
+All other routes remain CORS-free (same-origin).
+
+**`/api/me`** (`src/routes/me.ts`) is the canonical example of an authenticated
+route: reads `c.get("user")`, returns 401 if null, returns a narrow user
+projection otherwise. It uses `createRoute` and appears in the OpenAPI spec.
+
 ### Cron endpoints
 
 All routes under `/api/cron/*` are protected by the `CRON_SECRET` environment
@@ -86,6 +124,14 @@ formatted, outside the `api-client/` ESLint-ignored directory).
 New routes **must** be declared with `createRoute` and `OpenAPIHono.openapi()` (from
 `@hono/zod-openapi`) so they appear in the generated spec. Plain `Hono` routes are invisible
 to the spec generator.
+
+**Exception — Better Auth handler:** The `/api/auth/*` prefix is the sole
+non-OpenAPI route in the codebase. Better Auth ships its own request handler
+(`auth.handler(req)`) that dispatches dozens of routes internally; wrapping each
+in `createRoute` is not feasible. Those routes do not appear in
+`/api/openapi.json`. This is intentional: the web app calls them via Better
+Auth's client SDK, not the generated typed client. All other routes continue to
+follow the `createRoute` + `openapi()` convention.
 
 ```ts
 // src/routes/my-route.ts
