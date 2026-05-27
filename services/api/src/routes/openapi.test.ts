@@ -36,7 +36,7 @@ type OpenAPIDoc = {
 
 describe("GET /api/openapi.json", () => {
   async function fetchDoc(): Promise<OpenAPIDoc> {
-    const app = createApp();
+    const app = createApp({ cronSecret: "test-secret" });
     const res = await app.request("/api/openapi.json");
     return (await res.json()) as OpenAPIDoc;
   }
@@ -109,7 +109,7 @@ describe("GET /api/openapi.json", () => {
   });
 
   it("regression: GET /api/health still returns 200 with status and time", async () => {
-    const app = createApp();
+    const app = createApp({ cronSecret: "test-secret" });
     const res = await app.request("/api/health");
     expect(res.status).toBe(200);
     const body = (await res.json()) as { status: string; time: string };
@@ -119,7 +119,7 @@ describe("GET /api/openapi.json", () => {
   });
 
   it("regression: POST /api/echo still echoes message", async () => {
-    const app = createApp();
+    const app = createApp({ cronSecret: "test-secret" });
     const res = await app.request("/api/echo", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-echo-token": "test" },
@@ -132,7 +132,7 @@ describe("GET /api/openapi.json", () => {
   });
 
   it("regression: POST /api/echo with invalid body returns 400 ValidationError", async () => {
-    const app = createApp();
+    const app = createApp({ cronSecret: "test-secret" });
     const res = await app.request("/api/echo", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-echo-token": "test" },

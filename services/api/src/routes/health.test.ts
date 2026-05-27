@@ -5,13 +5,13 @@ import type { Clock } from "../lib/clock";
 
 describe("GET /api/health", () => {
   it("returns 200", async () => {
-    const app = createApp();
+    const app = createApp({ cronSecret: "test-secret" });
     const res = await app.request("/api/health");
     expect(res.status).toBe(200);
   });
 
   it("returns the documented JSON shape", async () => {
-    const app = createApp();
+    const app = createApp({ cronSecret: "test-secret" });
     const res = await app.request("/api/health");
     const body = (await res.json()) as unknown;
     expect(body).toMatchObject({ status: "ok" });
@@ -23,7 +23,7 @@ describe("GET /api/health", () => {
   it("time reflects the injected clock", async () => {
     const fixed = new Date("2025-01-15T12:00:00.000Z");
     const stubClock: Clock = { now: () => fixed };
-    const app = createApp({ clock: stubClock });
+    const app = createApp({ clock: stubClock, cronSecret: "test-secret" });
     const res = await app.request("/api/health");
     const body = (await res.json()) as { status: string; time: string };
     expect(body.time).toBe(fixed.toISOString());
