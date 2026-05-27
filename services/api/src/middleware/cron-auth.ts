@@ -9,7 +9,6 @@ export function createCronAuth(
   options: CronAuthOptions = {},
 ): MiddlewareHandler {
   const secret = options.secret ?? process.env["CRON_SECRET"];
-
   if (!secret) {
     throw new Error(
       "CRON_SECRET is not set. Copy services/api/.env.example to services/api/.env and set a non-empty value (any random string works locally).",
