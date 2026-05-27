@@ -140,7 +140,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-013 — Cron secret middleware
-**Status:** TODO
+**Status:** DONE
 **Description:** Add middleware that verifies the `Authorization` header against `CRON_SECRET` for routes under `/api/cron/*`. Reject anything else with 401. No cron routes exist yet — this just establishes the guard for epic 02.
 **Acceptance criteria:**
 - Unauthenticated request to a sample `/api/cron/ping` returns 401

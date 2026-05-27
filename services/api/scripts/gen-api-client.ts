@@ -11,7 +11,9 @@ const __dirname = dirname(__filename);
 const repoRoot = resolve(__dirname, "../../..");
 const apiClientDir = resolve(repoRoot, "apps/web/src/lib/api-client");
 
-const spec = await getOpenApiDocument();
+// Spec generation never serves requests; the placeholder satisfies the cron-auth
+// factory's fail-fast env check without coupling the script to real CRON_SECRET.
+const spec = await getOpenApiDocument({ cronSecret: "spec-generation-placeholder" });
 
 const specJson = JSON.stringify(spec, null, 2);
 mkdirSync(apiClientDir, { recursive: true });

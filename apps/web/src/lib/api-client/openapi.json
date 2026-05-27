@@ -99,6 +99,25 @@
         "required": [
           "message"
         ]
+      },
+      "CronPingResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "status",
+          "time"
+        ]
       }
     },
     "parameters": {}
@@ -171,6 +190,22 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cron/ping": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Cron guard is active and the secret is valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CronPingResponse"
                 }
               }
             }

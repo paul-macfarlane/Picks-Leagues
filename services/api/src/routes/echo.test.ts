@@ -12,7 +12,7 @@ function post(
   body: unknown,
   headers: Record<string, string> = VALID_HEADERS,
 ): ReturnType<ReturnType<typeof createApp>["request"]> {
-  return createApp().request(url, {
+  return createApp({ cronSecret: "test-secret" }).request(url, {
     method: "POST",
     headers,
     body: JSON.stringify(body),

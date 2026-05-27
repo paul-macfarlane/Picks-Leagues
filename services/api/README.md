@@ -21,6 +21,26 @@ GET /api/health
 
 `time` is the server clock at the moment of the request via `clock.now()`.
 
+### Cron endpoints
+
+All routes under `/api/cron/*` are protected by the `CRON_SECRET` environment
+variable. Every request must carry the header:
+
+```
+Authorization: Bearer <CRON_SECRET>
+```
+
+Vercel Cron sends this header automatically when cron schedules are declared in
+`vercel.json` (epic 02). Unauthenticated requests receive 401.
+
+**Smoke test — ping the cron guard locally:**
+
+```sh
+curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/ping
+```
+
+Expected response: `{ "status": "ok", "time": "<iso8601-utc>" }`
+
 ### Vercel entry
 
 `services/api/src/vercel-entry.ts` is bundled by esbuild into
