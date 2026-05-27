@@ -24,6 +24,11 @@ esbuild "$REPO_ROOT/services/api/src/vercel-entry.ts" \
   --target=node22 \
   --outfile="$FUNC_DIR/index.js"
 
+echo "Writing function package.json (ESM)..."
+cat > "$FUNC_DIR/package.json" << 'EOF'
+{ "type": "module" }
+EOF
+
 echo "Writing function config..."
 cat > "$FUNC_DIR/.vc-config.json" << 'EOF'
 {
