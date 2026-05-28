@@ -10,11 +10,36 @@ vi.mock("@/lib/api", () => ({
   },
 }));
 
+vi.mock("@/lib/auth-client", () => ({
+  signOut: vi.fn(),
+}));
+
+vi.mock("@tanstack/react-router", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@tanstack/react-router")>();
+  return {
+    ...original,
+    useNavigate: vi.fn(() => vi.fn()),
+  };
+});
+
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn() },
+}));
+
 import { ThemeProvider } from "@/components/theme-provider";
 import { apiClient } from "@/lib/api";
+import { SESSION_QUERY_KEY } from "@/lib/session";
 import { IndexComponent } from "./index";
 
 const mockGet = vi.mocked(apiClient.GET);
+
+const fakeSession = {
+  id: "user-1",
+  email: "test@example.com",
+  name: "Test User",
+  image: null,
+  emailVerified: true,
+};
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -30,12 +55,19 @@ beforeEach(() => {
   );
 });
 
-function renderWithClient(ui: React.ReactElement): void {
+function renderWithClient(
+  ui: React.ReactElement,
+  { withSession = true }: { withSession?: boolean } = {},
+): void {
   const client = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
     },
   });
+  // Pre-seed the session query so AuthGuard renders children immediately.
+  if (withSession) {
+    client.setQueryData(SESSION_QUERY_KEY, fakeSession);
+  }
   render(
     <ThemeProvider defaultTheme="system">
       <QueryClientProvider client={client}>{ui}</QueryClientProvider>
@@ -45,6 +77,7 @@ function renderWithClient(ui: React.ReactElement): void {
 
 describe("IndexComponent", () => {
   it("loading — shows skeleton, hides status text", () => {
+    // Health query is pending; session is pre-seeded so AuthGuard renders children.
     mockGet.mockReturnValue(new Promise(() => {}));
     renderWithClient(<IndexComponent />);
 

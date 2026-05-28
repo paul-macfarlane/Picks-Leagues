@@ -62,7 +62,7 @@ Set these in the Vercel project under **Settings → Environment Variables**. Ve
 | `DATABASE_URL` | required | required | Neon pooled connection string. FND-017 will inject the per-PR branch URL automatically for Preview. |
 | `VITE_API_BASE_URL` | leave unset | leave unset | Same-origin by default. Documented here for completeness; only set for explicit overrides (none used today). |
 | `BETTER_AUTH_SECRET` | required | required | JWT signing + cookie session secret. Generate with `openssl rand -base64 32`. Must be at least 32 chars. |
-| `BETTER_AUTH_URL` | required | required | Canonical app origin for OAuth callback URLs. For Preview, set to the specific preview deploy URL you want to test OAuth on (see notes below). |
+| `BETTER_AUTH_URL` | required | required | Canonical app origin for OAuth callback URLs. **Local dev: `http://localhost:5173`** (the frontend origin — OAuth round-trips through the Vite proxy so the session cookie is scoped to the origin the SPA runs on; using `:3000` would set the cookie on the API port and the SPA wouldn't see it). For Preview, set to the specific preview deploy URL you want to test OAuth on (see notes below). |
 | `GOOGLE_CLIENT_ID` | required for OAuth | required for OAuth | Google OAuth app client ID. Required for end-to-end sign-in via Google; API boots without it (Google provider is silently omitted). |
 | `GOOGLE_CLIENT_SECRET` | required for OAuth | required for OAuth | Google OAuth app client secret. |
 | `DISCORD_CLIENT_ID` | required for OAuth | required for OAuth | Discord OAuth app client ID. Required for end-to-end sign-in via Discord; API boots without it (Discord provider is silently omitted). |

@@ -44,6 +44,21 @@ OAuth providers are omitted silently when their credentials are absent — the A
 boots locally without Google/Discord secrets. Configure them in `.env` for
 end-to-end OAuth testing.
 
+**Local OAuth setup.** The session cookie is set on the response origin, so for
+the SPA at `:5173` to receive it, OAuth has to round-trip through the Vite proxy
+rather than directly to the API at `:3000`:
+
+- `BETTER_AUTH_URL=http://localhost:5173` (the frontend origin, not the API port)
+- Google redirect URI: `http://localhost:5173/api/auth/callback/google`
+- Discord redirect URI: `http://localhost:5173/api/auth/callback/discord`
+
+Vite forwards `/api/*` to the API with `changeOrigin: false` (see
+`apps/web/vite.config.ts`), so the browser sees the entire flow as same-origin
+on `:5173` and the cookie is scoped correctly. Registering the API port
+(`:3000`) instead would set the cookie on `localhost:3000` and the SPA on
+`:5173` would never see it — every `/api/me` would look unauthenticated.
+In production this is a non-issue (single Vercel project, one origin).
+
 **Regenerate Better Auth's reference schema** (rarely needed; only if upgrading
 Better Auth's major version):
 

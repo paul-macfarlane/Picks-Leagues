@@ -164,7 +164,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-015 — Auth UI in the web app
-**Status:** TODO
+**Status:** DONE
 **Description:** Build sign-in page using Better Auth client SDK and shadcn primitives. Two OAuth buttons (Google, Discord). Build sign-out flow. Add an `<AuthGuard>` for protected routes.
 **Acceptance criteria:**
 - Unauthenticated users hitting a protected route are redirected to `/sign-in`
