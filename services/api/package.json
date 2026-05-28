@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
+    "auth:generate": "npx @better-auth/cli generate",
     "gen:api": "tsx scripts/gen-api-client.ts",
     "gen:api:check": "pnpm gen:api && git -C $(git rev-parse --show-toplevel) diff --exit-code -- apps/web/src/lib/api-client"
   },
@@ -19,7 +20,8 @@
     "@hono/node-server": "^2.0.2",
     "@hono/zod-openapi": "1.4.0",
     "@neondatabase/serverless": "^0.10.4",
-    "drizzle-orm": "^0.43.1",
+    "better-auth": "^1.6.11",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.12.19",
     "pg": "^8.20.0",
     "ws": "^8.18.2",

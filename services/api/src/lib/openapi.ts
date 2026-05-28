@@ -44,7 +44,8 @@ export function formatZodIssues(
   }));
 }
 
-export const openApiDefaultHook: Hook<unknown, Env, string, unknown> = (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Hook generic must be any to work across all Env parameterizations
+export const openApiDefaultHook: Hook<unknown, any, string, unknown> = (
   result,
   c,
 ) => {
@@ -56,8 +57,8 @@ export const openApiDefaultHook: Hook<unknown, Env, string, unknown> = (
   return c.json({ error: "ValidationError" as const, issues }, 400);
 };
 
-export function createOpenApiApp(): OpenAPIHono {
-  return new OpenAPIHono({
+export function createOpenApiApp<E extends Env = Env>(): OpenAPIHono<E> {
+  return new OpenAPIHono<E>({
     defaultHook: openApiDefaultHook,
   });
 }

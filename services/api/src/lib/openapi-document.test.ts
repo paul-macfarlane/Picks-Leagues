@@ -79,11 +79,13 @@ describe("getOpenApiDocument", () => {
     ).toBe(true);
   });
 
-  it("document.components.schemas includes HealthResponse, EchoResponse, ValidationError", async () => {
+  it("document.components.schemas includes HealthResponse, EchoResponse, ValidationError, MeResponse, Unauthorized", async () => {
     const doc = await fetchDoc();
     const schemaKeys = Object.keys(doc.components?.schemas ?? {});
     expect(schemaKeys).toContain("HealthResponse");
     expect(schemaKeys).toContain("EchoResponse");
     expect(schemaKeys).toContain("ValidationError");
+    expect(schemaKeys).toContain("MeResponse");
+    expect(schemaKeys).toContain("Unauthorized");
   });
 });

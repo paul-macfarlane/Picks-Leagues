@@ -59,8 +59,14 @@ Set these in the Vercel project under **Settings → Environment Variables**. Ve
 
 | Variable | Preview | Production | Notes |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | required | required | Neon pooled connection string. A placeholder value is fine until FND-017 (Neon per-PR branch) and FND-014 (Better Auth) are wired. FND-017 will inject the per-PR branch URL automatically. |
+| `DATABASE_URL` | required | required | Neon pooled connection string. FND-017 will inject the per-PR branch URL automatically for Preview. |
 | `VITE_API_BASE_URL` | leave unset | leave unset | Same-origin by default. Documented here for completeness; only set for explicit overrides (none used today). |
+| `BETTER_AUTH_SECRET` | required | required | JWT signing + cookie session secret. Generate with `openssl rand -base64 32`. Must be at least 32 chars. |
+| `BETTER_AUTH_URL` | required | required | Canonical app origin for OAuth callback URLs. **Local dev: `http://localhost:5173`** (the frontend origin — OAuth round-trips through the Vite proxy so the session cookie is scoped to the origin the SPA runs on; using `:3000` would set the cookie on the API port and the SPA wouldn't see it). For Preview, set to the specific preview deploy URL you want to test OAuth on (see notes below). |
+| `GOOGLE_CLIENT_ID` | required for OAuth | required for OAuth | Google OAuth app client ID. Required for end-to-end sign-in via Google; API boots without it (Google provider is silently omitted). |
+| `GOOGLE_CLIENT_SECRET` | required for OAuth | required for OAuth | Google OAuth app client secret. |
+| `DISCORD_CLIENT_ID` | required for OAuth | required for OAuth | Discord OAuth app client ID. Required for end-to-end sign-in via Discord; API boots without it (Discord provider is silently omitted). |
+| `DISCORD_CLIENT_SECRET` | required for OAuth | required for OAuth | Discord OAuth app client secret. |
 
 Important: `VITE_*` variables are baked into the SPA bundle at **build time**, not read at runtime. Changing a `VITE_*` variable requires a redeploy to take effect. All other variables are read at runtime per serverless function invocation.
 
@@ -103,12 +109,10 @@ Run these checks after each deploy to confirm the full web → API path is worki
 - **Locally:** Vite proxy forwards `/api/*` to the API dev server at `:3000`.
 - **Deployed:** Vercel routes `/api/*` directly to the serverless function at `.vercel/output/functions/api.func/index.js` (bundled from `services/api/src/vercel-entry.ts` by `pnpm vercel:build`).
 
-Both environments are same-origin from the browser's perspective, so CORS is not configured on the API — the middleware is absent intentionally. If FND-014 introduces a cross-origin client (mobile, third-party), a finite allowlist with `credentials: true` will be added then; never a wildcard.
+Both environments are same-origin from the browser's perspective for every route — including Better Auth's `/api/auth/*`. The web app always hits the API via a relative URL, which the Vite proxy resolves locally and Vercel resolves on the same deployed domain. No CORS middleware is wired on the API. If a cross-origin consumer ever appears (e.g., a native mobile client hitting prod directly, or a third-party embed), CORS will be added then with a finite allowlist and `credentials: true` — never wildcard.
 
 ## Future env-var consumers
 
 These tickets will add additional environment variables:
 
-- **FND-013** — `CRON_SECRET` (cron endpoint authorization)
-- **FND-014** — `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`
 - **FND-017** — Neon per-PR branch wiring (injects `DATABASE_URL` automatically for each preview deploy)

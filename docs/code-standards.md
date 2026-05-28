@@ -184,6 +184,8 @@ This is the same "functional core, imperative shell" pattern the scoring module 
 - All API calls go through the generated typed client. No raw `fetch` in feature code.
 - Server state lives in TanStack Query. No `useState` for fetched data; no manual fetch-then-setState patterns.
 - Routes are TanStack Router file-based routes. Loaders use TanStack Query.
+- Protected routes use TanStack Router's `beforeLoad` hook to check session state: `const session = await context.queryClient.ensureQueryData(sessionQueryOptions); if (!session) throw redirect({ to: "/sign-in", search: { redirect: location.href } });`. The `QueryClient` is plumbed into router context via `createRouter({ context: { queryClient } })` in `main.tsx` and `createRootRouteWithContext<{ queryClient: QueryClient }>()` in the root route. This pattern is reused for all authenticated routes.
+- Session mutations (sign-out, profile edit) must clear the cache synchronously before async refetch: `queryClient.setQueryData(SESSION_QUERY_KEY, null); void queryClient.invalidateQueries(...)`. Synchronous clear prevents UI from showing stale user state while async refetch is in flight; `invalidateQueries` marks the data stale for cross-tab sync on focus.
 - Polling during game windows: 15–30 seconds. Configured per route, not globally.
 - Functional components only. Hooks at the top, ordered: state → derived → effects → handlers.
 - Props are typed explicitly. No `React.FC` (no implicit children).
