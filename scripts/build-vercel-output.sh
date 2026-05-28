@@ -17,11 +17,17 @@ echo "Copying web static files..."
 cp -r "$REPO_ROOT/apps/web/dist/." "$OUTPUT_DIR/static/"
 
 echo "Bundling API function..."
+# Bundle is ESM (--format=esm + "type": "module"), but several runtime deps
+# (e.g. `pg`) are CommonJS and call `require()` on Node built-ins like
+# `events` internally. esbuild's CJS-in-ESM wrapper emits a "Dynamic require
+# of X is not supported" stub unless we provide a real `require` — so we
+# inject one via createRequire at the top of the bundle.
 esbuild "$REPO_ROOT/services/api/src/vercel-entry.ts" \
   --bundle \
   --format=esm \
   --platform=node \
   --target=node22 \
+  --banner:js='import { createRequire } from "module"; const require = createRequire(import.meta.url);' \
   --outfile="$FUNC_DIR/index.js"
 
 echo "Writing function package.json (ESM)..."
