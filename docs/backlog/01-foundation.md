@@ -217,3 +217,17 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 - A local script reproduces the check and exits non-zero on drift
 - Passes on a clean tree; negative test (schema edit without migration) fails as expected
 **Dependencies:** FND-004, FND-016
+
+---
+
+### FND-020 — Production migration workflow (`workflow_dispatch`)
+**Status:** TODO
+**Description:** Add `.github/workflows/db-migrate.yml` triggered manually via `workflow_dispatch` with an `environment` input (`production` initially; `preview` slot reserved for FND-017). Runs `pnpm --filter @picksleagues/api db:migrate` against the chosen environment's `DATABASE_URL` (sourced from a per-environment GitHub secret — `DATABASE_URL_PROD` for `production`). Uses GitHub Environments so production runs can require approval and produce an audit trail in the Actions tab. **Deliberately not auto-on-push** — keeps migration timing decoupled from Vercel deploys so the order is human-controlled and a misordered apply can't break a deploy mid-flight. Companion to FND-019 (drift check at PR time) and FND-017 (per-PR Neon branches): together they form "schema can't drift unnoticed, previews get isolated branches with migrations applied automatically, prod migrations are an explicit one-click step." Also adds a short `docs/migrations.md` (or section in `docs/code-standards.md` § Database) establishing the **expand/contract convention** — every migration must be backward-compatible with the currently-deployed code so the workflow's run order vs. the Vercel deploy never matters (additive columns/tables only in the same PR as code that uses them; destructive cleanup ships in a separate PR after the consuming code is no longer in prod). Free on this public repo.
+**Acceptance criteria:**
+- `.github/workflows/db-migrate.yml` exposes `workflow_dispatch` with an `environment` input
+- `production` environment is configured in GitHub repo settings with required reviewer (so the button needs a human approval before running)
+- Successful run shows in the Actions tab; failed run leaves the schema unchanged (Drizzle migrations are transactional per file) and surfaces the error clearly
+- `DATABASE_URL_PROD` secret documented in `docs/deploy.md` alongside the existing Vercel env-var table
+- `docs/migrations.md` (or a new § Migrations in code-standards) documents the expand/contract rule with one worked example (e.g., "renaming a column" → split into add-new / dual-write / cut-over / drop-old across multiple PRs)
+- Dry-run / first invocation against an actual Neon prod branch succeeds (the FND-014 Better Auth migration is the natural first guinea pig)
+**Dependencies:** FND-004, FND-014
