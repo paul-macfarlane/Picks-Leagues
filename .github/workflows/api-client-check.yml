@@ -4,9 +4,6 @@ name: API client staleness check
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
 
 jobs:
   api-client-check:
