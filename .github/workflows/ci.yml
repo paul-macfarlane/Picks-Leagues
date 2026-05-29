@@ -1,10 +1,10 @@
 name: CI
 
+# PR gate: 5 parallel jobs (typecheck, lint, test, build, format:check).
+# Companion: api-client-check.yml validates the checked-in OpenAPI client.
+
 on:
   pull_request:
-  push:
-    branches:
-      - main
 
 concurrency:
   group: ci-${{ github.ref }}
