@@ -5,7 +5,6 @@ import * as React from "react";
 
 import { AuthGuard } from "@/components/auth-guard";
 import { ModeToggle } from "@/components/mode-toggle";
-import { UserMenu } from "@/components/user-menu";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UserMenu } from "@/components/user-menu";
 import { healthQueryOptions } from "@/lib/health";
 import { sessionQueryOptions } from "@/lib/session";
 
@@ -109,7 +109,8 @@ export function IndexComponent(): React.JSX.Element {
 
 export const Route = createFileRoute("/")({
   beforeLoad: async ({ context, location }) => {
-    const session = await context.queryClient.ensureQueryData(sessionQueryOptions);
+    const session =
+      await context.queryClient.ensureQueryData(sessionQueryOptions);
     if (!session) {
       throw redirect({
         to: "/sign-in",

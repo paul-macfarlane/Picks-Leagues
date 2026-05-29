@@ -1,7 +1,7 @@
 import { queryOptions, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { toast } from "sonner";
 import * as React from "react";
+import { toast } from "sonner";
 
 import { apiClient } from "./api";
 import type { components } from "./api-client/types.gen";
@@ -24,10 +24,7 @@ export const sessionQueryOptions = queryOptions({
   staleTime: 5 * 60 * 1000,
   refetchOnWindowFocus: true,
   retry: (failureCount, error) => {
-    if (
-      error instanceof Error &&
-      error.message === "Failed to load session"
-    ) {
+    if (error instanceof Error && error.message === "Failed to load session") {
       return failureCount < 2;
     }
     return false;

@@ -177,7 +177,7 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-016 — CI pipeline (typecheck, lint, test, build)
-**Status:** TODO
+**Status:** DONE
 **Description:** GitHub Actions workflow that runs on every PR: typecheck both packages, lint, run unit tests, build both packages. Vercel handles preview deploys via its own GitHub integration.
 **Acceptance criteria:**
 - PR opens → CI runs all four jobs in parallel

@@ -13,7 +13,9 @@ type OpenAPIDoc = {
 
 describe("getOpenApiDocument", () => {
   async function fetchDoc(): Promise<OpenAPIDoc> {
-    return (await getOpenApiDocument({ cronSecret: "test-secret" })) as OpenAPIDoc;
+    return (await getOpenApiDocument({
+      cronSecret: "test-secret",
+    })) as OpenAPIDoc;
   }
 
   it("returns an OpenAPI 3.0 document with info.title 'Picks Leagues API'", async () => {

@@ -36,7 +36,10 @@ export function UserMenu({ user }: UserMenuProps): React.JSX.Element {
           <span className="max-w-[120px] truncate text-sm font-medium">
             {firstName}
           </span>
-          <ChevronDown className="size-3 shrink-0 opacity-60" aria-hidden="true" />
+          <ChevronDown
+            className="size-3 shrink-0 opacity-60"
+            aria-hidden="true"
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
@@ -58,7 +61,10 @@ export function UserMenu({ user }: UserMenuProps): React.JSX.Element {
         >
           {isPending ? (
             <>
-              <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
+              <Loader2
+                className="mr-2 size-4 animate-spin"
+                aria-hidden="true"
+              />
               Signing out…
             </>
           ) : (

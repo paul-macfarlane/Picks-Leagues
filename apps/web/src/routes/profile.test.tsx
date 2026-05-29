@@ -3,6 +3,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SESSION_QUERY_KEY, type SessionUser } from "@/lib/session";
+
 vi.mock("@/lib/api", () => ({
   apiClient: {
     GET: vi.fn(),
@@ -14,7 +16,8 @@ vi.mock("@/lib/auth-client", () => ({
 }));
 
 vi.mock("@tanstack/react-router", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@tanstack/react-router")>();
+  const original =
+    await importOriginal<typeof import("@tanstack/react-router")>();
   return {
     ...original,
     useNavigate: vi.fn(() => vi.fn()),
@@ -26,8 +29,6 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 vi.mock("sonner", () => ({
   toast: { error: vi.fn() },
 }));
-
-import { SESSION_QUERY_KEY, type SessionUser } from "@/lib/session";
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -53,7 +54,11 @@ const fakeUser: SessionUser = {
 
 // Re-implement a minimal ProfileContent component for isolated UI testing.
 // The actual route's beforeLoad redirect is tested via integration/E2E tests.
-function ProfileContent({ session }: { session: SessionUser }): React.JSX.Element {
+function ProfileContent({
+  session,
+}: {
+  session: SessionUser;
+}): React.JSX.Element {
   return (
     <dl>
       <div>

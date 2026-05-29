@@ -1,8 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import * as React from "react";
+import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { signOut as authSignOut } from "@/lib/auth-client";
+import type { SessionUser } from "@/lib/session";
+
+import { UserMenu } from "./user-menu";
 
 vi.mock("@/lib/auth-client", () => ({
   signOut: vi.fn(),
@@ -19,12 +26,6 @@ vi.mock("sonner", () => ({
     error: vi.fn(),
   },
 }));
-
-import { signOut as authSignOut } from "@/lib/auth-client";
-import { useNavigate } from "@tanstack/react-router";
-import { toast } from "sonner";
-import type { SessionUser } from "@/lib/session";
-import { UserMenu } from "./user-menu";
 
 const mockSignOut = vi.mocked(authSignOut);
 const mockUseNavigate = vi.mocked(useNavigate);
@@ -75,7 +76,9 @@ describe("UserMenu", () => {
     const user = userEvent.setup();
     const navigate = vi.fn().mockResolvedValue(undefined);
     mockUseNavigate.mockReturnValue(navigate);
-    mockSignOut.mockResolvedValue({ data: undefined, error: null } as Awaited<ReturnType<typeof authSignOut>>);
+    mockSignOut.mockResolvedValue({ data: undefined, error: null } as Awaited<
+      ReturnType<typeof authSignOut>
+    >);
 
     renderWithClient(<UserMenu user={fakeUser} />);
 

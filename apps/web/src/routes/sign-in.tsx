@@ -33,7 +33,8 @@ function validateSearch(search: Record<string, unknown>): SignInSearch {
 export const Route = createFileRoute("/sign-in")({
   validateSearch,
   beforeLoad: async ({ context, search }) => {
-    const session = await context.queryClient.ensureQueryData(sessionQueryOptions);
+    const session =
+      await context.queryClient.ensureQueryData(sessionQueryOptions);
     if (session) {
       throw redirect({ to: search.redirect ?? "/" });
     }
@@ -41,10 +42,14 @@ export const Route = createFileRoute("/sign-in")({
   component: SignInComponent,
 });
 
-function getErrorMessage(error: string | undefined, pending: "google" | "discord" | null): string | null {
+function getErrorMessage(
+  error: string | undefined,
+  pending: "google" | "discord" | null,
+): string | null {
   if (pending) return null;
   if (error === "oauth") return "Sign-in failed. Please try again.";
-  if (error === "unconfigured") return "This sign-in provider isn't set up yet. Try another option or come back later.";
+  if (error === "unconfigured")
+    return "This sign-in provider isn't set up yet. Try another option or come back later.";
   if (error) return "Something went wrong. Please try again.";
   return null;
 }
@@ -52,7 +57,9 @@ function getErrorMessage(error: string | undefined, pending: "google" | "discord
 export function SignInComponent(): React.JSX.Element {
   const { redirect: redirectTo, error: errorParam } = Route.useSearch();
   const navigate = useNavigate();
-  const [pending, setPending] = React.useState<"google" | "discord" | null>(null);
+  const [pending, setPending] = React.useState<"google" | "discord" | null>(
+    null,
+  );
   const [errorMessage, setErrorMessage] = React.useState<string | null>(
     getErrorMessage(errorParam, null),
   );
@@ -82,7 +89,10 @@ export function SignInComponent(): React.JSX.Element {
       // typically never runs.
     } catch (e) {
       setPending(null);
-      if (e instanceof Error && e.message.toLowerCase().includes("unconfigured")) {
+      if (
+        e instanceof Error &&
+        e.message.toLowerCase().includes("unconfigured")
+      ) {
         setErrorMessage(
           provider === "google"
             ? "Google sign-in isn't set up yet. Try Discord, or come back later."
@@ -96,7 +106,7 @@ export function SignInComponent(): React.JSX.Element {
 
   return (
     <main className="bg-background flex min-h-screen flex-col items-center justify-center p-4">
-      <div className="absolute top-4 right-4">
+      <div className="absolute right-4 top-4">
         <ModeToggle />
       </div>
 
@@ -105,9 +115,7 @@ export function SignInComponent(): React.JSX.Element {
           <CardTitle className="text-foreground text-2xl font-semibold">
             Picks Leagues
           </CardTitle>
-          <CardDescription>
-            Sign in to make your picks.
-          </CardDescription>
+          <CardDescription>Sign in to make your picks.</CardDescription>
         </CardHeader>
 
         <CardContent className="flex flex-col gap-3">
@@ -145,7 +153,7 @@ export function SignInComponent(): React.JSX.Element {
 
           {errorMessage && (
             <div
-              className="text-error rounded-md border border-current/20 bg-current/5 px-4 py-3 text-sm"
+              className="text-error border-current/20 bg-current/5 rounded-md border px-4 py-3 text-sm"
               role="alert"
             >
               {errorMessage}

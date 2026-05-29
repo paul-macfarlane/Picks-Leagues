@@ -4,6 +4,12 @@ import { userEvent } from "@testing-library/user-event";
 import * as React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ThemeProvider } from "@/components/theme-provider";
+import { apiClient } from "@/lib/api";
+import { SESSION_QUERY_KEY } from "@/lib/session";
+
+import { IndexComponent } from "./index";
+
 vi.mock("@/lib/api", () => ({
   apiClient: {
     GET: vi.fn(),
@@ -15,7 +21,8 @@ vi.mock("@/lib/auth-client", () => ({
 }));
 
 vi.mock("@tanstack/react-router", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@tanstack/react-router")>();
+  const original =
+    await importOriginal<typeof import("@tanstack/react-router")>();
   return {
     ...original,
     useNavigate: vi.fn(() => vi.fn()),
@@ -25,11 +32,6 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 vi.mock("sonner", () => ({
   toast: { error: vi.fn() },
 }));
-
-import { ThemeProvider } from "@/components/theme-provider";
-import { apiClient } from "@/lib/api";
-import { SESSION_QUERY_KEY } from "@/lib/session";
-import { IndexComponent } from "./index";
 
 const mockGet = vi.mocked(apiClient.GET);
 

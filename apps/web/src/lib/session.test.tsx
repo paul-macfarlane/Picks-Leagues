@@ -1,7 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, act, screen } from "@testing-library/react";
+import { useNavigate } from "@tanstack/react-router";
+import { act, render, screen } from "@testing-library/react";
 import * as React from "react";
+import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { apiClient } from "@/lib/api";
+import { signOut as authSignOut } from "@/lib/auth-client";
+
+import { sessionQueryOptions, useSignOut } from "./session";
 
 vi.mock("@/lib/api", () => ({
   apiClient: {
@@ -22,12 +29,6 @@ vi.mock("sonner", () => ({
     error: vi.fn(),
   },
 }));
-
-import { apiClient } from "@/lib/api";
-import { signOut as authSignOut } from "@/lib/auth-client";
-import { useNavigate } from "@tanstack/react-router";
-import { toast } from "sonner";
-import { sessionQueryOptions, useSignOut } from "./session";
 
 const mockGet = vi.mocked(apiClient.GET);
 const mockSignOut = vi.mocked(authSignOut);
@@ -93,7 +94,11 @@ describe("useSignOut", () => {
   });
 
   function makeWrapper(client: QueryClient) {
-    return function Wrapper({ children }: { children: React.ReactNode }): React.JSX.Element {
+    return function Wrapper({
+      children,
+    }: {
+      children: React.ReactNode;
+    }): React.JSX.Element {
       return (
         <QueryClientProvider client={client}>{children}</QueryClientProvider>
       );
@@ -113,10 +118,18 @@ describe("useSignOut", () => {
   it("success: clears cached session, navigates to /sign-in", async () => {
     const navigate = vi.fn().mockResolvedValue(undefined);
     mockUseNavigate.mockReturnValue(navigate);
-    mockSignOut.mockResolvedValue({ data: undefined, error: null } as Awaited<ReturnType<typeof authSignOut>>);
+    mockSignOut.mockResolvedValue({ data: undefined, error: null } as Awaited<
+      ReturnType<typeof authSignOut>
+    >);
 
     const client = makeClient();
-    client.setQueryData(["session"], { id: "u1", email: "x@y.z", name: "x", image: null, emailVerified: true });
+    client.setQueryData(["session"], {
+      id: "u1",
+      email: "x@y.z",
+      name: "x",
+      image: null,
+      emailVerified: true,
+    });
     const Wrapper = makeWrapper(client);
 
     const { getByText } = render(
@@ -150,7 +163,9 @@ describe("useSignOut", () => {
       getByText("Sign out").click();
     });
 
-    expect(toast.error).toHaveBeenCalledWith("Sign out failed. Please try again.");
+    expect(toast.error).toHaveBeenCalledWith(
+      "Sign out failed. Please try again.",
+    );
     expect(navigate).not.toHaveBeenCalled();
     expect(screen.queryByText("Pending")).toBeNull();
   });
@@ -174,7 +189,9 @@ describe("useSignOut", () => {
       getByText("Sign out").click();
     });
 
-    expect(toast.error).toHaveBeenCalledWith("Sign out failed. Please try again.");
+    expect(toast.error).toHaveBeenCalledWith(
+      "Sign out failed. Please try again.",
+    );
     expect(navigate).not.toHaveBeenCalled();
     expect(screen.queryByText("Pending")).toBeNull();
   });

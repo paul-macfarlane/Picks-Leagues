@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SessionUser } from "@/lib/session";
 
+import { AuthGuard } from "./auth-guard";
+
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
     React.createElement("a", { href: to }, children),
@@ -30,8 +32,6 @@ vi.mock("@/lib/session", async (importOriginal) => {
     },
   };
 });
-
-import { AuthGuard } from "./auth-guard";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -82,9 +82,7 @@ describe("AuthGuard", () => {
     );
 
     await waitFor(() =>
-      expect(
-        screen.queryByText("Couldn't check your session"),
-      ).toBeTruthy(),
+      expect(screen.queryByText("Couldn't check your session")).toBeTruthy(),
     );
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
     expect(screen.queryByText("Protected content")).toBeNull();

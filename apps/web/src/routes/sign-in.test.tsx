@@ -3,6 +3,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { signIn } from "@/lib/auth-client";
+
+import { SignInComponent } from "./sign-in";
+
 interface SearchParams {
   redirect?: string;
   error?: string;
@@ -37,22 +41,18 @@ vi.mock("sonner", () => ({
 // This is necessary because SignInComponent reads Route.useSearch() and
 // the real Route.useSearch requires a live router context.
 vi.mock("@tanstack/react-router", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@tanstack/react-router")>();
+  const original =
+    await importOriginal<typeof import("@tanstack/react-router")>();
   return {
     ...original,
     useNavigate: vi.fn(() => vi.fn()),
     redirect: vi.fn((args: unknown) => args),
-    createFileRoute: vi.fn(
-      () => (config: Record<string, unknown>) => ({
-        ...config,
-        useSearch: mockUseSearch,
-      }),
-    ),
+    createFileRoute: vi.fn(() => (config: Record<string, unknown>) => ({
+      ...config,
+      useSearch: mockUseSearch,
+    })),
   };
 });
-
-import { signIn } from "@/lib/auth-client";
-import { SignInComponent } from "./sign-in";
 
 const mockSignInSocial = vi.mocked(signIn.social);
 
@@ -76,7 +76,9 @@ function makeClient(): QueryClient {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
-function renderSignIn(client: QueryClient = makeClient()): ReturnType<typeof render> {
+function renderSignIn(
+  client: QueryClient = makeClient(),
+): ReturnType<typeof render> {
   return render(
     <QueryClientProvider client={client}>
       <SignInComponent />
@@ -87,16 +89,24 @@ function renderSignIn(client: QueryClient = makeClient()): ReturnType<typeof ren
 describe("Sign-in page UI", () => {
   it("renders both OAuth buttons (Google + Discord) with accessible names", () => {
     renderSignIn();
-    expect(screen.getByRole("button", { name: /Continue with Google/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Continue with Discord/i })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Continue with Google/i }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Continue with Discord/i }),
+    ).toBeTruthy();
   });
 
   it("clicking Google → calls signIn.social with provider: 'google'", async () => {
     const user = userEvent.setup();
-    mockSignInSocial.mockResolvedValue({ data: null, error: null } as Awaited<ReturnType<typeof signIn.social>>);
+    mockSignInSocial.mockResolvedValue({ data: null, error: null } as Awaited<
+      ReturnType<typeof signIn.social>
+    >);
 
     renderSignIn();
-    await user.click(screen.getByRole("button", { name: /Continue with Google/i }));
+    await user.click(
+      screen.getByRole("button", { name: /Continue with Google/i }),
+    );
 
     expect(mockSignInSocial).toHaveBeenCalledWith(
       expect.objectContaining({ provider: "google", callbackURL: "/" }),
@@ -105,10 +115,14 @@ describe("Sign-in page UI", () => {
 
   it("clicking Discord → calls signIn.social with provider: 'discord'", async () => {
     const user = userEvent.setup();
-    mockSignInSocial.mockResolvedValue({ data: null, error: null } as Awaited<ReturnType<typeof signIn.social>>);
+    mockSignInSocial.mockResolvedValue({ data: null, error: null } as Awaited<
+      ReturnType<typeof signIn.social>
+    >);
 
     renderSignIn();
-    await user.click(screen.getByRole("button", { name: /Continue with Discord/i }));
+    await user.click(
+      screen.getByRole("button", { name: /Continue with Discord/i }),
+    );
 
     expect(mockSignInSocial).toHaveBeenCalledWith(
       expect.objectContaining({ provider: "discord", callbackURL: "/" }),
@@ -117,11 +131,15 @@ describe("Sign-in page UI", () => {
 
   it("?redirect=/leagues → buttons pass that as callbackURL", async () => {
     const user = userEvent.setup();
-    mockSignInSocial.mockResolvedValue({ data: null, error: null } as Awaited<ReturnType<typeof signIn.social>>);
+    mockSignInSocial.mockResolvedValue({ data: null, error: null } as Awaited<
+      ReturnType<typeof signIn.social>
+    >);
     mockUseSearch.mockReturnValue({ redirect: "/leagues" });
 
     renderSignIn();
-    await user.click(screen.getByRole("button", { name: /Continue with Google/i }));
+    await user.click(
+      screen.getByRole("button", { name: /Continue with Google/i }),
+    );
 
     expect(mockSignInSocial).toHaveBeenCalledWith(
       expect.objectContaining({ callbackURL: "/leagues" }),
@@ -138,10 +156,16 @@ describe("Sign-in page UI", () => {
     );
 
     renderSignIn();
-    await user.click(screen.getByRole("button", { name: /Continue with Google/i }));
+    await user.click(
+      screen.getByRole("button", { name: /Continue with Google/i }),
+    );
 
-    const googleBtn = screen.getByRole("button", { name: /Continue with Google/i });
-    const discordBtn = screen.getByRole("button", { name: /Continue with Discord/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /Continue with Google/i,
+    });
+    const discordBtn = screen.getByRole("button", {
+      name: /Continue with Discord/i,
+    });
     expect((googleBtn as HTMLButtonElement).disabled).toBe(true);
     expect((discordBtn as HTMLButtonElement).disabled).toBe(true);
 
@@ -161,11 +185,11 @@ describe("Sign-in page UI", () => {
     mockSignInSocial.mockRejectedValue(new Error("Network error"));
 
     renderSignIn();
-    await user.click(screen.getByRole("button", { name: /Continue with Google/i }));
-
-    await waitFor(() =>
-      expect(screen.getByRole("alert")).toBeTruthy(),
+    await user.click(
+      screen.getByRole("button", { name: /Continue with Google/i }),
     );
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
     expect(screen.getByText("Sign-in failed. Please try again.")).toBeTruthy();
   });
 });

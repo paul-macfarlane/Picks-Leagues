@@ -6,12 +6,7 @@
 // divergence from this file must be re-checked against `pnpm auth:generate`.
 // The CLI is the source of truth for column names and types; this file owns
 // placement within our schema layout.
-import {
-  boolean,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
