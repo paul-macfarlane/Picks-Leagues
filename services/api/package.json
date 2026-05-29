@@ -17,24 +17,24 @@
     "gen:api:check": "pnpm gen:api && git -C $(git rev-parse --show-toplevel) diff --exit-code -- apps/web/src/lib/api-client"
   },
   "dependencies": {
-    "@hono/node-server": "^2.0.2",
+    "@hono/node-server": "^2.0.4",
     "@hono/zod-openapi": "1.4.0",
     "@neondatabase/serverless": "^0.10.4",
     "better-auth": "^1.6.11",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.19",
-    "pg": "^8.20.0",
-    "ws": "^8.18.2",
+    "hono": "^4.12.23",
+    "pg": "^8.21.0",
+    "ws": "^8.21.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25.8.0",
+    "@types/node": "^25.9.1",
     "@types/pg": "^8.20.0",
     "@types/ws": "^8.5.14",
     "dotenv": "^16.5.0",
     "drizzle-kit": "^0.31.1",
     "openapi-typescript": "7.13.0",
-    "tsx": "^4.19.4",
-    "vitest": "^4.1.6"
+    "tsx": "^4.22.3",
+    "vitest": "^4.1.7"
   }
 }
