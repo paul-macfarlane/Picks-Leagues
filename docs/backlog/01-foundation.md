@@ -265,3 +265,19 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 **Dependencies:** FND-012, FND-015, FND-007
 
 ---
+
+### FND-022 — Per-PR preview environments (Neon branches + OAuth)
+**Status:** TODO
+**Description:** Make every PR's Vercel preview deploy a fully working, isolated environment — not just a static build. FND-005 proved a preview deploy renders; this makes it usable end-to-end. Each preview gets its own Neon database branch (forked from a baseline, migrated, cleaned up when the PR closes) so previews never touch production data and can be exercised destructively. OAuth must work on the dynamic preview URL: register the Google callback so sign-in completes on `*.vercel.app` previews and the session cookie is scoped where the SPA can see it (the same `:5173`-style scoping lesson from local dev — preview frontend and API are same-origin on one Vercel project, so `BETTER_AUTH_URL` must resolve to the preview's own origin). Wire per-preview env vars (preview `DATABASE_URL` → the PR's Neon branch, `BETTER_AUTH_URL` → the preview origin) into the existing hand-rolled GHA→Vercel deploy path. This unblocks reviewers testing real flows (sign-in, create league, picks) on a PR before merge, and is a prerequisite for richer preview-based smoke tests (POL-003).
+**Acceptance criteria:**
+- On PR open/update, a Neon branch is created (forked from a baseline branch) and migrations run against it
+- The preview deploy's `DATABASE_URL` points at that PR's Neon branch; no preview ever reads/writes production data
+- Neon branch is deleted when the PR is closed/merged (no orphaned branches)
+- Google OAuth callback registered for the preview origin; sign-in completes on a `*.vercel.app` preview and the session cookie is visible to the SPA
+- `BETTER_AUTH_URL` (and any origin-dependent env) resolves to the preview's own origin per deploy
+- Env-var provisioning runs through the existing hand-rolled GHA→Vercel path (no Vercel GitHub integration button)
+- Documented runbook: how a reviewer signs in and exercises a preview, and how branches are cleaned up
+**Dependencies:** FND-005, FND-020
+**Notes:** Captures previously-discussed preview-environment work (per-PR Neon branches + OAuth redirect handling). See MEMORY: local OAuth `:5173` cookie-scoping lesson and "no CORS — same-origin everywhere" (preview frontend + API are one same-origin Vercel project). Prerequisite for POL-003 (production/preview smoke tests).
+
+---
