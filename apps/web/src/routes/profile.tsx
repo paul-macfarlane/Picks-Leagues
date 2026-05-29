@@ -5,18 +5,14 @@ import * as React from "react";
 
 import { AuthGuard } from "@/components/auth-guard";
 import { ModeToggle } from "@/components/mode-toggle";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserMenu } from "@/components/user-menu";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { sessionQueryOptions } from "@/lib/session";
 
 export const Route = createFileRoute("/profile")({
   beforeLoad: async ({ context, location }) => {
-    const session = await context.queryClient.ensureQueryData(sessionQueryOptions);
+    const session =
+      await context.queryClient.ensureQueryData(sessionQueryOptions);
     if (!session) {
       throw redirect({
         to: "/sign-in",
@@ -52,7 +48,11 @@ function ProfileComponent(): React.JSX.Element {
                       Name
                     </dt>
                     <dd className="text-foreground text-sm">
-                      {session.name || <span className="text-muted-foreground italic">Not set</span>}
+                      {session.name || (
+                        <span className="text-muted-foreground italic">
+                          Not set
+                        </span>
+                      )}
                     </dd>
                   </div>
 

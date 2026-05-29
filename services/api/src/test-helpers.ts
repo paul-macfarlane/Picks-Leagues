@@ -15,7 +15,9 @@ function buildTestAuth(): AppDeps["auth"] {
   });
 }
 
-export function buildTestApp(overrides: AppDeps = {}): ReturnType<typeof createApp> {
+export function buildTestApp(
+  overrides: AppDeps = {},
+): ReturnType<typeof createApp> {
   const auth = overrides.auth ?? buildTestAuth();
   const cronSecret = overrides.cronSecret ?? "test-cron-secret";
   return createApp({ ...overrides, auth, cronSecret });

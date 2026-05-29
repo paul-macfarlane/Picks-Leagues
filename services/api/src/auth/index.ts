@@ -37,8 +37,7 @@ export function createAuth(deps: AuthDeps = {}) {
     );
   }
 
-  const googleClientId =
-    deps.googleClientId ?? process.env["GOOGLE_CLIENT_ID"];
+  const googleClientId = deps.googleClientId ?? process.env["GOOGLE_CLIENT_ID"];
   const googleClientSecret =
     deps.googleClientSecret ?? process.env["GOOGLE_CLIENT_SECRET"];
   const discordClientId =
