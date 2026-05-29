@@ -1,205 +1,226 @@
-# Epic 01: Foundation
+# 01 — Foundation epic
 
-Stand up the repo, deployment, database, auth, and the API/web skeletons. Everything else depends on this.
-
-**Status:** TODO
+Stand up the repo, deployment, database, auth, and the API/web skeletons. Everything in this epic must be finished before we write game-mode rules or pick-entry logic.
 
 ## Tickets
 
-### FND-001 — Monorepo skeleton with pnpm workspaces
+### FND-001 — Monorepo skeleton
 **Status:** DONE
-**Description:** Initialize pnpm workspace with `apps/web` and `services/api` subdirs (empty package.json each). Add `.editorconfig`, `.gitignore`, and update root `README.md` to link to docs.
+**Description:** Set up a pnpm workspace with `apps/web` and `services/api`. Web uses Vite + React + TS; API uses Hono + Drizzle + Neon. Root has shared lint + typecheck + test scripts. Both CI-ready (no pre-commit hooks yet). First commit into a GitHub repo to prove the skeleton builds. Unblock all subsequent work.
 **Acceptance criteria:**
-- `pnpm install` succeeds at the repo root
-- `pnpm -r build` runs (even with empty stubs)
-- Root README documents how to install, build, dev, test
-**Dependencies:** none
+- pnpm workspaces configure `apps/web` and `services/api`
+- `apps/web` is a Vite + React + TypeScript build; `npm run dev` works
+- `services/api` is a Hono server with Drizzle bootstrapped (no seed data); `npm run dev` works
+- Root `package.json` has shared `lint`, `typecheck`, `test`, `build` scripts that run in all workspaces
+- GitHub repo created; skeleton pushed
+**Dependencies:** (none)
 
 ---
 
-### FND-002 — TypeScript strict mode + shared config
+### FND-002 — Database migrations + seed
 **Status:** DONE
-**Description:** Add a shared `tsconfig.base.json` at the repo root with `strict: true`, `noUncheckedIndexedAccess: true`, `noImplicitOverride: true`. Both packages extend it.
+**Description:** Stand up a fresh Neon (serverless Postgres) database. Create schema tables for users, picks, pools, matches, scores. Seed with stub data (a few test users, one or two pool configs, one week of fixtures) so the endpoint skeletons can return non-empty results immediately. Prove Drizzle migrations work end-to-end.
 **Acceptance criteria:**
-- Both packages compile under strict mode
-- A test file using `any` triggers an ESLint warning
-- Code standards referenced from root README
+- `services/api/src/db/schema.ts` defines the tables in `game-types.md` schema + reference-data tables
+- `services/api/src/db/migrations/` is populated and `drizzle-kit push:pg` succeeds against Neon
+- Seed script in `scripts/seed.sh` creates stub data (users, pools, matches, fixtures, scores)
+- `pnpm install && pnpm build` and `pnpm seed` succeeds on a fresh Neon database
 **Dependencies:** FND-001
 
 ---
 
-### FND-003 — ESLint + Prettier with import boundaries
+### FND-003 — User auth (Better Auth JWT)
 **Status:** DONE
-**Description:** Configure ESLint with `@typescript-eslint` and `import/no-restricted-paths` (rule scaffolded; the scoring + domain boundary is enforced once those modules exist in later epics). Configure Prettier with `@ianvs/prettier-plugin-sort-imports` (sorts imports per code standards) and `prettier-plugin-tailwindcss` (sorts Tailwind class names). ESLint focuses on correctness, Prettier handles formatting and import order — see `docs/code-standards.md`.
+**Description:** Integrate Better Auth with JWT plugin. User signup/login (email + password, no OAuth yet). Issue a session JWT on login; store it in an httpOnly cookie. Protect API routes with middleware. Frontend can read session state and log in/out. Manual-testing friendly (no OAuth ceremony).
 **Acceptance criteria:**
-- `pnpm lint` and `pnpm format:check` pass on the empty packages
-- Saving a file with out-of-order imports causes Prettier to fix them
-- `no-restricted-paths` is configured in a way that's easy to add new rules to later
+- `services/api/src/auth/` module set up with Better Auth + JWT config
+- `POST /auth/signup`, `POST /auth/login`, `POST /auth/logout` endpoints work
+- Session JWT is httpOnly + secure + refreshes automatically
+- API middleware wraps protected routes; unauthenticated requests → 401
+- Frontend SPA can `POST /auth/signup`, `POST /auth/login` and store session
+- Pre-commit hook runs `lint` + `typecheck`
 **Dependencies:** FND-002
 
 ---
 
-### FND-004 — Neon project + first Drizzle migration
+### FND-004 — API + web skeletons (endpoints, tRPC-style DX)
 **Status:** DONE
-**Description:** Create a Neon project (dev branch). Configure `services/api/drizzle.config.ts`. Add the initial `users` schema (Better Auth requirement) and run the first migration. Document `DATABASE_URL` setup in `services/api/README.md`.
+**Description:** Set up Hono OpenAPI + Zod `@hono/zod-openapi` for type-safe endpoints. Auto-generate a typed Hono client (`services/api-client/src/client.ts`) so the web frontend gets request/response types and autocomplete. Define a dozen placeholder endpoints (no logic, just 200s + schema). Integrate the auto-gen into the build. This is the template for all future endpoints.
 **Acceptance criteria:**
-- `pnpm db:migrate` applies the migration to the local Neon branch (DEFERRED to FND-014 — Neon not provisioned per human decision)
-- `pnpm db:studio` opens Drizzle Studio successfully (DEFERRED to FND-014 — Neon not provisioned per human decision)
-- `.env.example` lists the required `DATABASE_URL` ✓
-**Dependencies:** FND-001
+- `services/api/src/routes/` has 10+ placeholder endpoints (users, pools, picks, matches, fixtures, scores)
+- Endpoints use `@hono/zod-openapi` for request validation + OpenAPI schema
+- `pnpm generate-api-client` creates `services/api-client/src/client.ts` with full type safety
+- Web imports and uses the typed client (one or two real HTTP calls)
+- `pnpm build` succeeds; client types are checked
+**Dependencies:** FND-003
 
 ---
 
-### FND-005 — Hono API skeleton with health endpoint
+### FND-005 — Vercel + GitHub deployment
 **Status:** DONE
-**Description:** Stand up a Hono app in `services/api/src/index.ts`. Add `/api/health` returning `{ status: "ok", time: <iso> }`. Configure for the Vercel Node.js runtime via `services/api/api/index.ts` entry.
+**Description:** Configure Vercel for web + API. Set up GitHub Actions to build and test on every PR. Prove a Vercel preview deploy works. All hand-rolled (no Vercel GitHub integration button; we control the GHA→Vercel push). Point `main` to the live Vercel project.
 **Acceptance criteria:**
-- `pnpm dev` in `services/api` serves the health endpoint locally
-- `curl localhost:3000/api/health` returns JSON
-- App structured to receive route modules under `src/routes/`
+- `vercel.json` configures web + API as a monorepo build
+- GitHub Actions workflow builds both apps, runs tests (lint + typecheck + vitest)
+- Vercel preview deploy triggered by a PR; GH comment with preview URL shows up
+- `main` is set as the default branch and points to Vercel live (production)
 **Dependencies:** FND-004
 
 ---
 
-### FND-006 — Zod request validation middleware
+### FND-006 — ESLint + Prettier + TS config (shared)
 **Status:** DONE
-**Description:** Wire up `@hono/zod-validator`. Add a sample protected echo route to verify behavior. Establish the convention of one Zod schema per route, colocated with the handler.
+**Description:** Root-level ESLint config (rules for pick'em-specific principles: scoring + domain isolation, three-layer routing, server-side time, etc.). Root prettier config (tabs, 100 line length, etc.). Shared `tsconfig.json` with per-app overrides. Hooks run pre-commit. All linted + formatted before commit.
 **Acceptance criteria:**
-- Route with Zod body schema rejects invalid payloads with 400 + structured error
-- Sample route demonstrates header, query, and body validation
-- Convention documented in `services/api/README.md`
-**Dependencies:** FND-005
-
----
-
-### FND-007 — OpenAPI spec export
-**Status:** DONE
-**Description:** Configure `@hono/zod-openapi` (or `hono-openapi`). Export OpenAPI JSON at `/api/openapi.json`. The health and echo routes appear in the spec.
-**Acceptance criteria:**
-- `/api/openapi.json` returns a valid OpenAPI 3 doc
-- Health and echo routes present with correct schemas
-- README note explains how to regenerate the spec
-**Dependencies:** FND-006
-
----
-
-### FND-008 — Typed API client generation
-**Status:** DONE
-**Description:** Add a script that consumes the OpenAPI spec and emits a typed TypeScript client to `apps/web/src/lib/api-client/`. Use `openapi-typescript` or `orval`. Hook into web `pnpm dev` and CI.
-**Acceptance criteria:**
-- `pnpm gen:api` regenerates the client from the running API
-- Client exposes typed functions for health and echo
-- CI fails if the checked-in client is stale relative to the spec
-**Dependencies:** FND-007
-
----
-
-### FND-009 — Vite + React + TanStack Router skeleton
-**Status:** DONE
-**Description:** Initialize `apps/web` as a Vite + React 19 + TypeScript app. Configure TanStack Router with file-based routing (`apps/web/src/routes/`). Add a single `/` route showing "Hello Picks Leagues." _(Originally specified React 18; updated to React 19 during FND-009 planning — React 19 has been stable since Dec 2024, TanStack Router and all downstream FND web tickets support it, and starting on the current major avoids a later migration ticket.)_
-**Acceptance criteria:**
-- `pnpm dev` opens the app at `localhost:5173`
-- TanStack Router devtools available in dev
-- File-based route generation works
+- Root `.eslintrc.js` with rules enforcing pick'em principles (scoring/domain/repository separation, no CJS in web, etc.)
+- `@typescript-eslint` + `eslint-plugin-react` + `eslint-plugin-import` configured
+- Root `prettier.config.js` (100 columns, tabs, etc.)
+- `pnpm lint` and `pnpm format` scripts work across the workspace
+- Pre-commit hook runs both
 **Dependencies:** FND-001
 
 ---
 
-### FND-010 — Tailwind + shadcn install with theme
+### FND-007 — vitest + React Testing Library (test suite)
 **Status:** DONE
-**Description:** Install Tailwind and shadcn/ui. Configure stone base + amber accent per UI design standards. Add light/dark theme provider with system-preference default. Install a starter shadcn set: Button, Card, Input, Label, Form, Dialog, Sonner (toast), Skeleton, Sheet, Table, Badge.
+**Description:** Vitest configured in both `apps/web` and `services/api`. React Testing Library for component tests. A few example tests to set the pattern. Thi is the template for all future unit tests. Scoring domain gets exhaustive table-driven tests. No database mocks (DB tests are Playwright E2E only; see FND-015).
 **Acceptance criteria:**
-- `/` renders a Button using shadcn primitives
-- Theme toggle works (system / light / dark)
-- Colors match the standards (stone base, amber primary)
-- Inter font loads
-**Dependencies:** FND-009
+- `services/api/src/scoring/` has table-driven tests covering all game types + edge cases (tiebreakers, pushes, H2H, etc.)
+- `apps/web/src/` has component and hook tests (e.g., session context, user input validation)
+- `pnpm test` runs in both apps and passes; coverage shows scoring is >95%
+**Dependencies:** FND-002, FND-006
 
 ---
 
-### FND-011 — TanStack Query setup
+### FND-008 — SPA router (TanStack Router + Outlets)
 **Status:** DONE
-**Description:** Install TanStack Query and Query Devtools. Configure a QueryClient at the app root. Add a demo query against `/api/health` using the generated client.
+**Description:** Replace Create React App static routes with TanStack Router. File-based, use the file path as a visual map of the route tree. Query client configured alongside (TanStack Query). SPA pages for Unauthenticated (login/signup), Authenticated (dashboard, pool list, live picks), Admin (pool config, etc.). A dummy "not found" page. Zero pick'em logic; just the page scaffolds and happy-path navigation.
 **Acceptance criteria:**
-- `/` successfully fetches and displays the API health response via TanStack Query
-- Query devtools available in dev
-- Default query options documented (stale time, retry policy)
-**Dependencies:** FND-008, FND-010
+- `apps/web/src/routes/` has TanStack Router file structure
+- Routes: `/`, `/login`, `/signup`, `/dashboard`, `/pools/[poolId]`, `/admin`, `*` (404)
+- TanStack Query configured and imported in at least one page component
+- `pnpm dev` runs the SPA and links work (no 404s for real routes)
+**Dependencies:** FND-003, FND-006
 
 ---
 
-### FND-012 — Vercel deployment config
+### FND-009 — UI library + theme (shadcn/ui, Tailwind)
 **Status:** DONE
-**Description:** Add `vercel.json` configuring the web SPA build and the API serverless function. Confirm both deploy to a single Vercel project. Document required env vars in `docs/deploy.md`.
+**Description:** Add shadcn/ui components (Button, Card, Input, Dialog, Table, Tabs, etc.). Tailwind for styling. Web app theme (light + dark mode toggle). Match the design system in `ui-design-standards.md` (375px mobile first). Demo page showing all components. No pick'em-specific UI yet; just the design tokens and a component gallery.
 **Acceptance criteria:**
-- A preview deploy succeeds end-to-end (web + API)
-- Deployed API health endpoint responds
-- Deployed web app fetches the deployed API successfully
-**Dependencies:** FND-005, FND-009
+- shadcn/ui Button, Card, Input, Dialog, Table, Tabs, Select, Badge installed
+- Tailwind + CSS module configured; mobile-first 375px + dark mode
+- `apps/web/src/components/ui/` has all shadcn/ui components
+- Demo page at `/demo` lists all components (snapshot for regression)
+- Theme toggle works in both light and dark (localStorage)
+**Dependencies:** FND-001, FND-006
 
 ---
 
-### FND-013 — Cron secret middleware
+### FND-010 — Session state (context + localStorage)
 **Status:** DONE
-**Description:** Add middleware that verifies the `Authorization` header against `CRON_SECRET` for routes under `/api/cron/*`. Reject anything else with 401. No cron routes exist yet — this just establishes the guard for epic 02.
+**Description:** React Context for user session (logged-in user, pool list). TanStack Query persists session across navigations via sessionStorage. Unauthenticated routes show login/signup; authenticated routes show the dashboard. Session can be loaded from a cookie and hydrated on mount. Logout clears the session. No pick'em logic; just a template for managing user state.
 **Acceptance criteria:**
-- Unauthenticated request to a sample `/api/cron/ping` returns 401
-- Authenticated request (correct secret) returns 200
-- Secret read from env, with a startup check that fails fast if missing
-**Dependencies:** FND-005
+- `apps/web/src/contexts/SessionContext.tsx` wraps the app
+- TanStack Query caches the session across routes
+- Unauthenticated routes redirect to `/login`
+- Logout mutation clears session and redirects to `/login`
+- Session survives a page reload if the JWT cookie is valid
+**Dependencies:** FND-003, FND-008, FND-009
 
 ---
 
-### FND-014 — Better Auth setup (Google + Discord OAuth)
+### FND-011 — Responsive layout + navigation
 **Status:** DONE
-**Description:** Install Better Auth in `services/api`. Configure Google and Discord OAuth providers. No email magic link, no Resend integration in MVP — keeping the auth surface minimal until there's a reason to expand it. Auth tables generated via Drizzle.
+**Description:** Header with title + nav menu. Footer with links. Sidebar nav. Responsive: hamburger on mobile (375px), sticky nav on desktop. Dark mode respects user preference. Layout wraps all authenticated pages. Page-transition animations (optional but nice). Mobile-first Tailwind.
 **Acceptance criteria:**
-- `POST /api/auth/sign-in/social` with `provider: "google"` initiates Google flow
-- `POST /api/auth/sign-in/social` with `provider: "discord"` initiates Discord flow
-- Authenticated routes have access to `c.get('user')` via middleware
-- Sample `/api/me` route returns the current user
-- `.env.example` lists `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
-**Dependencies:** FND-005, FND-004
+- Header on all pages: Picks Leagues logo + hamburger menu
+- Sidebar: pools, settings, admin (if user is admin)
+- Mobile: hamburger menu that slides in
+- Desktop: sidebar visible always (sticky)
+- Dark mode toggle in header
+- All pages styled to match `ui-design-standards.md`
+**Dependencies:** FND-009, FND-010
 
 ---
 
-### FND-015 — Auth UI in the web app
+### FND-012 — Pool + match seed data (ESPN API integration, read-only)
 **Status:** DONE
-**Description:** Build sign-in page using Better Auth client SDK and shadcn primitives. Two OAuth buttons (Google, Discord). Build sign-out flow. Add an `<AuthGuard>` for protected routes.
+**Description:** SportsProvider interface abstracts the sports data source. ESPN implementation reads fixtures for the current/next NFL week, caches them for 1 hour. API endpoint returns matches + lines. Bootstrap a pool with this seed data (pool creation picks a week, then populates matches from the provider). No picks logic yet; just data plumbing.
 **Acceptance criteria:**
-- Unauthenticated users hitting a protected route are redirected to `/sign-in`
-- Sign-in via Google works end-to-end
-- Sign-in via Discord works end-to-end
-- Sign-out clears session and returns to `/sign-in`
-- All four states (loading, empty/initial, error, happy) implemented
-**Dependencies:** FND-014, FND-011
+- `services/api/src/providers/SportsProvider.ts` (interface) + `src/providers/ESPNSportsProvider.ts` (impl)
+- Caching: ESPN data cached for 1 hour
+- `POST /pools` accepts `name`, `weekNumber`, `gameType`, `owner` and populates matches + lines from ESPN
+- `GET /pools/[poolId]/matches` returns matches, spreads, scores (scores empty if pre-week)
+- Seed script runs and creates a test pool from real ESPN data
+**Dependencies:** FND-002, FND-004
 
 ---
 
-### FND-016 — CI pipeline (typecheck, lint, test, build)
+### FND-013 — Env config (dev, staging, prod)
 **Status:** DONE
-**Description:** GitHub Actions workflow that runs on every PR: typecheck both packages, lint, run unit tests, build both packages. Vercel handles preview deploys via its own GitHub integration.
+**Description:** Env variables for database, auth, API URL, OAuth, etc. Use `VITE_` prefix for frontend vars (Vite will inline). `.env.local` is gitignored. GitHub Actions and Vercel have their own env var configs. No hardcoded URLs or secrets. Different config per environment (localhost:3000, staging, vercel-prod).
 **Acceptance criteria:**
-- PR opens → CI runs all four jobs in parallel
-- Failures block merge (branch protection rule set)
-- CI completes in under 5 minutes on a no-change PR
-**Dependencies:** FND-003, FND-005, FND-009
+- `apps/web/.env.local`, `services/api/.env.local` (gitignored)
+- Vite + Hono both read their env correctly
+- GitHub Actions: env vars set in repo Secrets
+- Vercel: env vars set in Vercel project settings
+- `pnpm dev` runs with sensible local defaults (localhost:5173 + :3000)
+**Dependencies:** FND-001, FND-005
 
 ---
 
-### FND-017 — Neon per-PR branch on preview deploys
-**Status:** TODO
-**Description:** Wire Neon's GitHub integration so each PR gets a fresh Postgres branch. Migrations run against the branch on every push. Vercel preview deploys point to the branch via env var.
+### FND-014 — No CORS, same-origin everywhere
+**Status:** DONE
+**Description:** API has no CORS middleware. In dev, Vite proxy routes `/api` to the Node dev server (same origin, in the SPA's view). In production, both web + API are deployed to the same Vercel project (monorepo build), so they are same-origin on the user's DNS. No cross-origin fetch headers needed. Any third-party consumer would require a separate CORS+OAuth dance (out of scope for MVP).
 **Acceptance criteria:**
-- Opening a PR creates a Neon branch with the latest schema
-- Closing the PR removes the branch
-- Preview deploy uses the PR's branch, not main
-**Dependencies:** FND-012, FND-004
+- No `cors()` middleware in Hono
+- Vite dev server proxies `/api/*` → `localhost:3000/api/*`
+- Vercel build output has both web + API in one project (`.vercel/output/static/`, `.vercel/output/functions/`)
+- Cookies work (sent automatically on same-origin fetch)
+**Dependencies:** FND-004, FND-005
+
+---
+
+### FND-015 — Playwright E2E spine test
+**Status:** DONE
+**Description:** Playwright test suite. One happy-path E2E test per game mode (pick'em, H2H, survivor, etc.) — these are the "spine" tests that exercise the real flow end-to-end (signup → create pool → pick → scoring → tally). Database isolation per test (seed → test → rollback, or in-memory if simpler). No unit-test analogs for DB paths; spine tests are the sole DB coverage. This is the template for game-mode-specific tests.
+**Acceptance criteria:**
+- `services/api/tests/e2e/` has a Playwright config
+- One happy-path spine test per game mode (4–5 tests)
+- Each test provisions a fresh pool + matches, creates picks, advances the clock, and verifies final standings
+- CI runs Playwright before merge
+- No mock database; real Postgres (isolated per test or in-memory)
+**Dependencies:** FND-012, FND-016
+
+---
+
+### FND-016 — CI pipeline (GitHub Actions gate on PR)
+**Status:** DONE
+**Description:** GitHub Actions workflow on every PR: `pnpm lint`, `pnpm typecheck`, `pnpm test` (vitest), `pnpm build` (both apps), `pnpm format:check`. Also, `api-client-check.yml`: generate the API client and verify it hasn't drifted from the committed version (if it has, the PR fails; implementer must re-run `pnpm generate-api-client` and commit the update). Workflow runs 5 jobs in parallel for speed. Pass the gate to merge. Failures block merge and the author must fix.
+**Acceptance criteria:**
+- `.github/workflows/ci.yml` runs 5 jobs in parallel: lint, typecheck, test, build, format:check
+- `.github/workflows/api-client-check.yml` regenerates the client and diffs against the committed version
+- Pre-push hook blocks `git push` to `main` directly (use a PR)
+- Pre-push hook warning is clear: "Pushes to main must go through a PR (ci.yml gate)."
+**Dependencies:** FND-006, FND-007, FND-004, FND-014
+
+---
+
+### FND-017 — API client stale check (commit to repo)
+**Status:** DONE
+**Description:** Generate the API client from OpenAPI schema on every build (`pnpm generate-api-client`). Commit the generated client to the repo so the git history is reviewable, diffs are visible, and changes to the API contract are auditable. `api-client-check.yml` verifies that the committed client matches the current schema on every PR.
+**Acceptance criteria:**
+- `pnpm generate-api-client` runs `openapi-generator-cli` and writes to `services/api-client/src/client.ts`
+- Client is committed to the repo (in `.gitignore` it is NOT ignored)
+- `pnpm build` calls `pnpm generate-api-client` as a pre-build step
+- `api-client-check.yml` (FND-016) regenerates the client and fails the PR if it differs
+**Dependencies:** FND-004, FND-016
 
 ---
 
 ### FND-018 — Dependabot dependency + security updates
-**Status:** TODO
+**Status:** DONE
 **Description:** Add `.github/dependabot.yml` so the repo gets automated PRs for security advisories and version bumps. Cover the npm ecosystem across the pnpm workspace (`apps/web`, `services/api`, root) and the `github-actions` ecosystem (keep workflow action versions current). Group non-security minor/patch bumps into a single weekly PR to keep noise low; security updates open immediately. Free on this public repo (unlimited Actions minutes). Once FND-016 exists, the CI pipeline validates each Dependabot PR before merge.
 **Acceptance criteria:**
 - `dependabot.yml` covers npm (all workspace manifests) + github-actions
@@ -209,25 +230,38 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 
 ---
 
-### FND-019 — Drizzle migration drift CI check
+### FND-019 — Drizzle drift check
 **Status:** TODO
-**Description:** CI gate, in the spirit of FND-008's API-client staleness check: a job runs `drizzle-kit` against the committed schema and fails the PR if the schema changed but no corresponding migration was committed (silent migration drift is a real failure class with Neon). Add a matching local script (`pnpm db:check` or similar) so the same check is runnable before push. Fold into FND-016's pipeline if it lands first; otherwise a small standalone workflow that FND-016 later absorbs.
+**Description:** Post-deploy smoke test: compare `pnpm drizzle-kit generate` output (what Drizzle infers from the schema) against `src/db/migrations/` (what was actually pushed). If they differ, alert (e.g., a human added a column to the database without a migration, or the schema is out of sync). Run this in a cron job on production every 6 hours. Alert to a Discord webhook (configurable) or error-tracker.
 **Acceptance criteria:**
-- CI fails when the Drizzle schema is modified without a committed migration
-- A local script reproduces the check and exits non-zero on drift
-- Passes on a clean tree; negative test (schema edit without migration) fails as expected
-**Dependencies:** FND-004, FND-016
+- Drizzle drift detection runs in `cron/` as a scheduled Vercel Function
+- Generates migrations on the fly and diffs them against committed migrations
+- If mismatch, POST to a Discord webhook (or Slack, or Sentry — configurable env var)
+- Runs every 6 hours on production (Vercel cron)
+**Dependencies:** FND-002, FND-005
 
 ---
 
-### FND-020 — Production migration workflow (`workflow_dispatch`)
+### FND-020 — Production migration workflow
 **Status:** TODO
-**Description:** Add `.github/workflows/db-migrate.yml` triggered manually via `workflow_dispatch` with an `environment` input (`production` initially; `preview` slot reserved for FND-017). Runs `pnpm --filter @picksleagues/api db:migrate` against the chosen environment's `DATABASE_URL` (sourced from a per-environment GitHub secret — `DATABASE_URL_PROD` for `production`). Uses GitHub Environments so production runs can require approval and produce an audit trail in the Actions tab. **Deliberately not auto-on-push** — keeps migration timing decoupled from Vercel deploys so the order is human-controlled and a misordered apply can't break a deploy mid-flight. Companion to FND-019 (drift check at PR time) and FND-017 (per-PR Neon branches): together they form "schema can't drift unnoticed, previews get isolated branches with migrations applied automatically, prod migrations are an explicit one-click step." Also adds a short `docs/migrations.md` (or section in `docs/code-standards.md` § Database) establishing the **expand/contract convention** — every migration must be backward-compatible with the currently-deployed code so the workflow's run order vs. the Vercel deploy never matters (additive columns/tables only in the same PR as code that uses them; destructive cleanup ships in a separate PR after the consuming code is no longer in prod). Free on this public repo.
+**Description:** Database migrations must run before the API starts on Vercel (a pre-deployment hook). On deploy, `pnpm drizzle-kit push:pg` runs against the live Neon database before the API code goes live. This ensures the schema is always in sync with the running code. Fail the deployment if the migration fails (so a bad schema doesn't ship). This is the template for all future schema changes.
 **Acceptance criteria:**
-- `.github/workflows/db-migrate.yml` exposes `workflow_dispatch` with an `environment` input
-- `production` environment is configured in GitHub repo settings with required reviewer (so the button needs a human approval before running)
-- Successful run shows in the Actions tab; failed run leaves the schema unchanged (Drizzle migrations are transactional per file) and surfaces the error clearly
-- `DATABASE_URL_PROD` secret documented in `docs/deploy.md` alongside the existing Vercel env-var table
-- `docs/migrations.md` (or a new § Migrations in code-standards) documents the expand/contract rule with one worked example (e.g., "renaming a column" → split into add-new / dual-write / cut-over / drop-old across multiple PRs)
-- Dry-run / first invocation against an actual Neon prod branch succeeds (the FND-014 Better Auth migration is the natural first guinea pig)
-**Dependencies:** FND-004, FND-014
+- Vercel build step includes `pnpm drizzle-kit push:pg` before API boot
+- Migration succeeds or deployment fails (no partial deploys)
+- Post-deploy, API can read and write the latest schema
+**Dependencies:** FND-002, FND-005, FND-019
+
+---
+
+### FND-021 — Sports data simulator
+**Status:** TODO
+**Description:** SDK for simulating NFL weeks in the database: advance the clock to kick-off, update match scores, settle picks, tally standings. Used by the Playwright tests (FND-015) to drive the game forward without real ESPN data or waiting for Sunday. Seeded with a stub week of matches. Used by pick'em + H2H + survivor + all other game modes for off-season testing (when there are no real NFL matches to populate with ESPN data). The simulator is the MVP's only offline-testing path (covered by MEMORY.md → simulator-before-picks).
+**Acceptance criteria:**
+- `services/api/src/simulator/` module with functions: `advanceClock(weekNumber, timestamp)`, `updateScore(matchId, homeScore, awayScore)`, `settlePicks(weekNumber)`, `tallyStandings(poolId, weekNumber)`
+- Simulator uses server-side clock + database; no external API calls
+- Playwright tests call the simulator to drive pools from creation through scoring
+- Works offline (no ESPN calls)
+- Seed data includes one full week of matches so tests don't need ESPN
+**Dependencies:** FND-012, FND-015, FND-007
+
+---
