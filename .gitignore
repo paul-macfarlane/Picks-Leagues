@@ -23,3 +23,6 @@ coverage/
 
 # Legacy implementations
 legacy/
+
+# Local screenshots (not for the repo)
+Screenshot*.png
