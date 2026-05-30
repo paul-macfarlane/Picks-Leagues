@@ -308,3 +308,9 @@ Requires `DATABASE_URL`. Opens a browser-based GUI for inspecting the database.
 Migrations are generated, reviewed, and committed alongside the schema change.
 Never edit a migration that has already run in production — add a new one
 instead.
+
+Production and preview environments apply migrations automatically at deploy time:
+`pnpm vercel:build` (`scripts/build-vercel-output.sh`) runs `db:migrate` as its
+first step, before the web build and API bundle. A failed migration fails the
+deploy. Run `db:migrate` manually only for local Docker or a manual Neon-branch
+setup. See `docs/deploy.md` § "Database migrations on deploy" for details.

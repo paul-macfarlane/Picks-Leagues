@@ -29,10 +29,20 @@ to `.vercel/output/`:
 ```
 
 The script:
-1. Builds the web app (`pnpm --filter @picksleagues/web build`) and copies `apps/web/dist/` into `.vercel/output/static/`.
-2. Runs esbuild to bundle `services/api/src/vercel-entry.ts` → `.vercel/output/functions/api.func/index.js`.
-3. Writes `.vercel/output/functions/api.func/.vc-config.json` declaring the Node 22 runtime.
-4. Writes `.vercel/output/config.json` with three routes: `/api/*` → function, filesystem precedence for static assets, SPA fallback to `index.html`.
+1. Runs `pnpm --filter @picksleagues/api db:migrate` to apply all pending committed migrations against the deploy's `DATABASE_URL` (see [Database migrations on deploy](#database-migrations-on-deploy) below).
+2. Builds the web app (`pnpm --filter @picksleagues/web build`) and copies `apps/web/dist/` into `.vercel/output/static/`.
+3. Runs esbuild to bundle `services/api/src/vercel-entry.ts` → `.vercel/output/functions/api.func/index.js`.
+4. Writes `.vercel/output/functions/api.func/.vc-config.json` declaring the Node 22 runtime.
+5. Writes `.vercel/output/config.json` with three routes: `/api/*` → function, filesystem precedence for static assets, SPA fallback to `index.html`.
+
+### Database migrations on deploy
+
+Migrations run as the **first** step of `pnpm vercel:build` (step 1 above). This means:
+
+- **No partial deploys.** The script runs under `set -euo pipefail`. A failed migration exits non-zero, Vercel marks the build failed, and the current deployment keeps serving traffic. The new API bundle is never published.
+- **Production and preview each migrate their own `DATABASE_URL`.** Vercel injects the correct connection string for the target environment, so production and preview databases are migrated independently. (FND-022 will give each PR its own isolated Neon branch; until then, all preview deploys migrate the shared preview `DATABASE_URL`.)
+- **Template for every schema change.** Edit the schema → run `pnpm --filter @picksleagues/api db:generate` to commit the migration (required by FND-019's CI drift check) → merge to trigger a deploy, which auto-applies the migration before the new function goes live. See `services/api/src/db/migrate.ts` for the runner and `services/api/README.md` § "Migration hygiene" for the hygiene rules.
+- **`DATABASE_URL` must be set.** If `DATABASE_URL` is absent for any Vercel environment that builds, `db:migrate` exits with a clear error message and the build fails. This is intentional — a deploy without a database target is broken and should not ship.
 
 When `.vercel/output/` is present after a build, Vercel reads it as the canonical
 deploy manifest — no auto-detection is involved. This is why the switch was made:

@@ -5,6 +5,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT_DIR="$REPO_ROOT/.vercel/output"
 FUNC_DIR="$OUTPUT_DIR/functions/api.func"
 
+echo "Applying database migrations..."
+pnpm --filter @picksleagues/api db:migrate
+
 echo "Cleaning $OUTPUT_DIR..."
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$FUNC_DIR"
