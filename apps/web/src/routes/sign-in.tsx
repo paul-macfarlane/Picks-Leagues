@@ -106,7 +106,7 @@ export function SignInComponent(): React.JSX.Element {
 
   return (
     <main className="bg-background flex min-h-screen flex-col items-center justify-center p-4">
-      <div className="absolute right-4 top-4">
+      <div className="absolute top-4 right-4">
         <ModeToggle />
       </div>
 
@@ -153,7 +153,7 @@ export function SignInComponent(): React.JSX.Element {
 
           {errorMessage && (
             <div
-              className="text-error border-current/20 bg-current/5 rounded-md border px-4 py-3 text-sm"
+              className="text-error rounded-md border border-current/20 bg-current/5 px-4 py-3 text-sm"
               role="alert"
             >
               {errorMessage}
