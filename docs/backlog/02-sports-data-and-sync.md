@@ -1,8 +1,12 @@
 # Epic 02: Sports data & sync
 
-Set up the `SportsProvider` interface, the ESPN implementation, the schedule + scores sync cron jobs, the **simulator**, and an **admin override UI** for when ESPN gets something wrong in production.
+Set up the `SportsProvider` interface, the ESPN implementation, the schedule + scores sync cron jobs, the **season-replay simulator**, and an **admin override UI** for when ESPN gets something wrong in production.
 
-**The simulator must be complete before any pick-submission or scoring work begins.** It is the only way to test those modules in the off-season.
+**The simulator must be complete before any pick-submission or scoring work begins.** It is the only way to exercise those modules in the off-season.
+
+The simulator works by **re-enacting a real past NFL season** (e.g. 2024): it pulls the archived schedule, scores, and spreads from the real ESPN provider and replays them week-by-week through the **same sync pipeline the production crons use**. This means one tool gives us both off-season testing of in-season user flows (picks, locking, scoring, standings) **and** continuous validation of the real ESPN integration — there is no separate scripted/fake data path. Past-season data is served by ESPN's public API, so the simulator needs network access (it is not offline). **Hitting the real ESPN API is acceptable everywhere it's needed — including local dev and CI/E2E tests** (past seasons are static, so replays are deterministic enough). If ESPN ever stops exposing historical seasons we'll add a snapshot/record-replay path then, not before. (Originally scoped as a scripted, offline, in-memory `SportsProvider` in FND-021 + SPT-010–013; replaced 2026-05-30 with this real-ESPN replay design, which is what was actually built and proven in a prior project.)
+
+> **Reference implementation:** the simulator, ESPN client, and sync pipeline were built and proven in the gitignored **`legacy/`** folder (local-only; see the backlog [README](README.md#reference-implementations-legacy)). Key files: `legacy/src/lib/simulator.ts`, `legacy/src/lib/sync/`, `legacy/src/lib/espn/`, `legacy/src/components/admin/simulator-panel.tsx`, `legacy/src/lib/db/schema/external.ts`. The legacy app was Next.js; port the design to this Hono + Drizzle monorepo, not the framework specifics.
 
 The admin override capability (SPT-014, SPT-015) is the operator escape hatch — informed by prior pool-running experience where ESPN occasionally reports wrong scores, misses status updates, or publishes bad spreads. Without it, every data error becomes a database surgery; with it, the commissioner-of-the-app fixes it from a form.
 
@@ -109,48 +113,55 @@ The admin override capability (SPT-014, SPT-015) is the operator escape hatch �
 
 ---
 
-### SPT-010 — Simulator provider: scripted data
+### SPT-010 — Simulator: past-season initializer
 **Status:** TODO
-**Description:** A `SportsProvider` implementation returning scripted data from in-memory state. Swappable via env var `SPORTS_PROVIDER=simulator`. Exposes admin endpoints (auth-gated) for the rest of the simulator.
+**Description:** `services/api/src/simulator/` module with `initializeSeason(year)`: fetch an entire **real, archived** past NFL season from the ESPN provider (SPT-003) and persist it — all weeks, the 32 teams, and every game — with each game in `scheduled` status and **no scores yet**, so the full schedule is visible up front. Reuses the `sync-schedule` upsert path (SPT-006) rather than a parallel code path; sync-schedule owns reference-data creation. Auth-gated (admin only). No fake/scripted data and no `SPORTS_PROVIDER` swap — this is the real ESPN provider pointed at a past year. Mirrors the prior project's `initializeSeason(year)`.
 **Acceptance criteria:**
-- `SPORTS_PROVIDER=simulator` makes the API use the simulator instead of ESPN
-- Simulator can be loaded with a fixture: teams, a week of games, spreads
-- All `SportsProvider` methods return data from in-memory state
-**Dependencies:** SPT-002
+- `initializeSeason(year)` populates seasons, weeks, teams, and games for a known past season (e.g. 2024) from real ESPN data
+- Every game is created with status `scheduled` and null scores; the full week-by-week schedule is present after init
+- Creation goes through the same upsert path as `sync-schedule` (no duplicate write logic); re-running is idempotent
+- Admin-gated; a non-admin call is rejected
+- Teardown: `resetSeason(seasonId)` cascade-deletes the season and all dependent rows
+**Dependencies:** SPT-006
 
 ---
 
-### SPT-011 — Simulator: time-travel clock helper
+### SPT-011 — Simulator: time-travel clock
 **Status:** TODO
-**Description:** A `clock.now()` helper that returns the real clock in normal mode and the simulator clock in simulator mode. Every time-based check in the API goes through this helper. Admin endpoint `POST /api/sim/clock` sets the simulator clock.
+**Description:** A `clock.now()` helper that returns the real clock normally and the **simulator clock** in simulator mode. Every time-based check in the API goes through it (already a project non-negotiable). Admin endpoint `POST /api/sim/clock` sets the simulator clock. For replay this positions "now" at a chosen point inside the past season's real timeline (e.g. "Sunday 1pm ET of week 7, 2024") so pick-lock times, game windows, and pick visibility resolve authentically against the historical kickoff times — this is what makes off-season testing of in-season flows possible.
 **Acceptance criteria:**
 - All `now()` reads in the API go through `clock.now()`
-- In simulator mode, helper returns the simulator clock
-- Setting the clock to a value in the future causes a game's status to flip correctly when scores are updated
+- In simulator mode, `clock.now()` returns the simulator clock; in normal mode, the real clock
+- `POST /api/sim/clock` (admin-gated) sets the simulator clock to an arbitrary timestamp within a replayed season
+- With the clock set before a week's `pickLockTime`, picks are open; set after it, picks are locked — verified against a replayed week's real kickoff times
 **Dependencies:** SPT-010
 
 ---
 
-### SPT-012 — Simulator: admin endpoints for game control
+### SPT-012 — Simulator: week-by-week replay driver
 **Status:** TODO
-**Description:** Auth-gated admin endpoints to advance the simulator: set a game's status, set scores, mark cancelled/postponed. Used to drive end-to-end tests of pick locking, visibility, scoring, and notifications once those exist.
+**Description:** Drive a replayed season forward one week at a time by calling the **same sync handlers the production crons use** (SPT-006 schedule/spreads, SPT-008 scores) with an explicit `weekId` instead of the auto-detected current week. Pulls the real archived ESPN scores, status, and spreads for that week, flips finished games to `final`, and invokes the game-resolution dispatcher (SPT-009) exactly once per game. This is the core of the simulator: replaying a real past season is the same code path that runs live on Sundays, which is exactly why it validates the ESPN integration end-to-end. Auth-gated admin endpoints.
 **Acceptance criteria:**
-- `POST /api/sim/games/:id/score` updates score and triggers normal sync-scores flow
-- `POST /api/sim/games/:id/status` flips status, triggering dispatcher when FINAL
-- `POST /api/sim/games/:id/cancel` and `/postpone` work
-- `docs/simulator.md` explains how to drive a full-week scenario
-**Dependencies:** SPT-011, SPT-009
+- `POST /api/sim/seasons/:id/weeks/:weekId/sync-scores` runs the real sync-scores flow for just that week and updates scores/status from archived ESPN data
+- `POST /api/sim/seasons/:id/weeks/:weekId/sync-spreads` refreshes that week's spreads via the sync-schedule path
+- `FINAL` transitions invoke the dispatcher (SPT-009) exactly once per game; re-running a week is idempotent (no double-dispatch)
+- Replaying weeks 1→N of a real past season reproduces that season's real outcomes
+- `docs/simulator.md` documents how to drive a full-season replay
+**Dependencies:** SPT-011, SPT-008, SPT-009
 
 ---
 
-### SPT-013 — Simulator: full-season fixture loader
+### SPT-013 — Simulator: admin UI
 **Status:** TODO
-**Description:** Script that loads a complete fake NFL regular season (teams, 18 weeks of games, plausible kickoff times) into the simulator. Default fixture for dev and E2E tests.
+**Description:** Admin-only page (e.g. `/admin/sim`) to drive the replay without curl: pick a year and initialize a season, view a week-by-week status table (game count, finals count, spreads available), trigger per-week "Sync Scores" / "Sync Spreads", set the simulator clock, and reset/teardown a season. Reuses the real sync pipeline behind the buttons — no fake data. Mirrors the prior project's simulator panel. Follows the shadcn + react-hook-form + zod + four-states UI standards.
 **Acceptance criteria:**
-- `pnpm sim:load-season` populates the local DB with a full simulated season
-- Kickoff times spread realistically (Thu, Sun early/late, Mon)
-- Spreads populated for week 1
-**Dependencies:** SPT-012
+- Admin can initialize a past season by year and see the full week-by-week schedule populate
+- Per-week buttons trigger the real score/spread sync (SPT-012) and the table reflects updated finals/scores
+- A control sets the simulator clock (SPT-011) and the UI reflects the active simulated time
+- Reset button cascade-deletes a season with a confirmation dialog
+- Non-admins are redirected; the simulator link is hidden from non-admin nav
+- Mobile + dark mode + four states (loading/empty/error/happy) verified per UI standards
+**Dependencies:** SPT-012, FND-009
 
 ---
 

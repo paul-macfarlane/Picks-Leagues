@@ -51,6 +51,10 @@ export default tseslint.config(
       "apps/web/src/lib/api-client/**",
       "**/*.config.js",
       ".vercel/**",
+      // legacy/ is a gitignored, local-only reference copy of a prior project
+      // (see docs/backlog/README.md § Reference implementations). It is not part
+      // of this codebase — never lint it.
+      "legacy/**",
     ],
   },
 

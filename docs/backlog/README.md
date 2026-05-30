@@ -41,3 +41,18 @@ See [process-definition.md](../../process-definition.md) for the development wor
 - Acceptance criteria are **testable**. "Looks good" is not a criterion.
 - UI tickets always require loading, empty, and error states per the [UI design standards](../ui-design-standards.md).
 - Backend tickets always require tests per the [code standards](../code-standards.md).
+
+## Reference implementations (`legacy/`)
+
+A working prior version of this app lives in the **`legacy/`** folder at the repo root. It is **gitignored** — local-only reference material, not part of the committed tree — so it's available when planning/implementing on a local checkout but never shipped or reviewed as part of a PR. (It's also excluded from lint and prettier; it is not this codebase.)
+
+When a ticket has a real, proven precedent there, consult it before designing from scratch. Notably, the **season-replay simulator and the ESPN/sync pipeline** (epic 02) were built and proven in `legacy/`:
+
+- `legacy/src/lib/simulator.ts` — `initializeSeason(year)`, `resetSeason`, `getSimulatorStatus` (SPT-010)
+- `legacy/src/lib/sync/` — week-scoped sync handlers reused by both crons and the simulator (SPT-012)
+- `legacy/src/lib/espn/` — ESPN client + per-resource fetchers (SPT-003–005)
+- `legacy/src/components/admin/simulator-panel.tsx`, `legacy/src/actions/admin/simulator.ts` — admin simulator UI (SPT-013)
+- `legacy/src/lib/db/schema/external.ts` — `external_*` bridge tables mapping ESPN ids → internal ids
+- `legacy/docs/BACKGROUND_JOBS.md`, `legacy/docs/SYNC_ARCHITECTURE.md` — the written architecture
+
+Treat it as a guide, not gospel: the legacy app was Next.js (server actions, `src/`); this one is a Hono + Drizzle monorepo (`services/api`, `apps/web`). Port the design, not the framework specifics.
