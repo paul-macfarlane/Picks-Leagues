@@ -35,5 +35,10 @@
     "prettier-plugin-tailwindcss": "^0.8",
     "typescript": "^5",
     "typescript-eslint": "^8"
+  },
+  "pnpm": {
+    "overrides": {
+      "kysely": "0.28.17"
+    }
   }
 }
