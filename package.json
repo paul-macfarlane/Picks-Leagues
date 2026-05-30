@@ -27,7 +27,7 @@
     "esbuild": "^0.28.0",
     "eslint": "^9",
     "eslint-config-prettier": "^10",
-    "eslint-import-resolver-typescript": "^3",
+    "eslint-import-resolver-typescript": "^4",
     "eslint-plugin-import-x": "^4",
     "eslint-plugin-react-hooks": "^7",
     "globals": "^16",
