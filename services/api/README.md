@@ -280,6 +280,12 @@ Reads the schema files in `src/db/schema/`, diffs against the committed
 migrations, and emits a new SQL file into `src/db/migrations/`. No DB
 connection required. Commit the generated files alongside the schema change.
 
+The `schema-drift-check.yml` CI workflow enforces this on every PR via
+`pnpm db:generate:check`: it runs `db:generate` and fails if a new (uncommitted)
+migration is produced — i.e. someone edited the schema but forgot to commit the
+migration. Mirrors the `gen:api:check` staleness gate. If it fails, run
+`pnpm db:generate` and commit the result.
+
 ### Apply migrations
 
 ```sh
