@@ -77,9 +77,10 @@ export function createAuth(deps: AuthDeps = {}) {
   const trustedOrigins: string[] = [];
   const vercelUrl = process.env["VERCEL_URL"];
   if (vercelUrl) {
-    const rawVercelOrigin = vercelUrl.startsWith("https://") || vercelUrl.startsWith("http://")
-      ? vercelUrl
-      : `https://${vercelUrl}`;
+    const rawVercelOrigin =
+      vercelUrl.startsWith("https://") || vercelUrl.startsWith("http://")
+        ? vercelUrl
+        : `https://${vercelUrl}`;
     trustedOrigins.push(rawVercelOrigin);
   }
 

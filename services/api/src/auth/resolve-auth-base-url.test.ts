@@ -26,10 +26,7 @@ describe("resolveAuthBaseURL", () => {
 
   it("falls back to https://${VERCEL_URL} when BETTER_AUTH_URL unset and VERCEL_URL set", () => {
     expect(
-      resolveAuthBaseURL(
-        {},
-        { VERCEL_URL: "my-deploy-abc123.vercel.app" },
-      ),
+      resolveAuthBaseURL({}, { VERCEL_URL: "my-deploy-abc123.vercel.app" }),
     ).toBe("https://my-deploy-abc123.vercel.app");
   });
 
@@ -56,10 +53,7 @@ describe("resolveAuthBaseURL", () => {
 
   it("VERCEL_URL with http:// scheme — preserves it as-is", () => {
     expect(
-      resolveAuthBaseURL(
-        {},
-        { VERCEL_URL: "http://localhost.vercel.app" },
-      ),
+      resolveAuthBaseURL({}, { VERCEL_URL: "http://localhost.vercel.app" }),
     ).toBe("http://localhost.vercel.app");
   });
 
