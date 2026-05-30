@@ -9,6 +9,12 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
+    # kysely is pinned to 0.28.17 via a pnpm override (see root package.json).
+    # kysely 0.29 moved DEFAULT_MIGRATION_TABLE/_LOCK_TABLE off the main entry,
+    # which breaks @better-auth/kysely-adapter and our esbuild API bundle.
+    # Ignore it so dependabot doesn't fight the override.
+    ignore:
+      - dependency-name: "kysely"
     groups:
       npm-minor-and-patch:
         patterns:
