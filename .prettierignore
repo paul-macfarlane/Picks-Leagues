@@ -9,3 +9,5 @@ services/api/src/db/migrations/meta/
 # Hand-authored docs — exclude to avoid reformat-everything diff on first run
 docs/**
 *.md
+# Legacy implementations (gitignored, local-only reference copy)
+legacy/

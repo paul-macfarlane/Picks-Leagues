@@ -255,15 +255,10 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-021 — Sports data simulator
-**Status:** TODO
-**Description:** SDK for simulating NFL weeks in the database: advance the clock to kick-off, update match scores, settle picks, tally standings. Used by the Playwright tests (FND-015) to drive the game forward without real ESPN data or waiting for Sunday. Seeded with a stub week of matches. Used by pick'em + H2H + survivor + all other game modes for off-season testing (when there are no real NFL matches to populate with ESPN data). The simulator is the MVP's only offline-testing path (covered by MEMORY.md → simulator-before-picks).
-**Acceptance criteria:**
-- `services/api/src/simulator/` module with functions: `advanceClock(weekNumber, timestamp)`, `updateScore(matchId, homeScore, awayScore)`, `settlePicks(weekNumber)`, `tallyStandings(poolId, weekNumber)`
-- Simulator uses server-side clock + database; no external API calls
-- Playwright tests call the simulator to drive pools from creation through scoring
-- Works offline (no ESPN calls)
-- Seed data includes one full week of matches so tests don't need ESPN
-**Dependencies:** FND-012, FND-015, FND-007
+**Status:** MOVED → epic 02 (SPT-010–013)
+**Moved:** 2026-05-30. The simulator depends on the `SportsProvider` interface, the ESPN provider, and the sync cron pipeline — all of which live in epic 02 (Sports data & sync) — so it belongs there, not in Foundation.
+**Redesigned:** The original offline/scripted, in-memory simulator was replaced with a **real-ESPN season-replay** design: re-enact a real past NFL season by pulling its archived schedule/scores/spreads from ESPN and replaying them week-by-week through the same sync pipeline the production crons use. One tool now covers both off-season testing of in-season flows **and** validation of the real ESPN integration. It is no longer offline. See **SPT-010 → SPT-013** in [02-sports-data-and-sync.md](02-sports-data-and-sync.md).
+**Dependencies:** (see SPT-010–013)
 
 ---
 
