@@ -40,7 +40,7 @@ The script:
 Migrations run as the **first** step of `pnpm vercel:build` (step 1 above). This means:
 
 - **No partial deploys.** The script runs under `set -euo pipefail`. A failed migration exits non-zero, Vercel marks the build failed, and the current deployment keeps serving traffic. The new API bundle is never published.
-- **Production and preview each migrate their own `DATABASE_URL`.** Vercel injects the correct connection string for the target environment, so production and preview databases are migrated independently. (FND-022 will give each PR its own isolated Neon branch; until then, all preview deploys migrate the shared preview `DATABASE_URL`.)
+- **Production and preview each migrate their own `DATABASE_URL`.** Vercel injects the correct connection string for the target environment, so production and preview databases are migrated independently. Each PR preview gets its own isolated Neon branch via `preview-env.yml` (see [Per-PR preview environments](#per-pr-preview-environments)).
 - **Template for every schema change.** Edit the schema → run `pnpm --filter @picksleagues/api db:generate` to commit the migration (required by FND-019's CI drift check) → merge to trigger a deploy, which auto-applies the migration before the new function goes live. See `services/api/src/db/migrate.ts` for the runner and `services/api/README.md` § "Migration hygiene" for the hygiene rules.
 - **`DATABASE_URL` must be set.** If `DATABASE_URL` is absent for any Vercel environment that builds, `db:migrate` exits with a clear error message and the build fails. This is intentional — a deploy without a database target is broken and should not ship.
 
@@ -69,10 +69,10 @@ Set these in the Vercel project under **Settings → Environment Variables**. Ve
 
 | Variable | Preview | Production | Notes |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | required | required | Neon pooled connection string. FND-017 will inject the per-PR branch URL automatically for Preview. |
+| `DATABASE_URL` | per-PR Neon branch URL injected by `preview-env.yml` | required | Neon pooled connection string. Each preview PR gets its own isolated branch via the `preview-env.yml` workflow; production uses the project's main database. |
 | `VITE_API_BASE_URL` | leave unset | leave unset | Same-origin by default. Documented here for completeness; only set for explicit overrides (none used today). |
 | `BETTER_AUTH_SECRET` | required | required | JWT signing + cookie session secret. Generate with `openssl rand -base64 32`. Must be at least 32 chars. |
-| `BETTER_AUTH_URL` | required | required | Canonical app origin for OAuth callback URLs. **Local dev: `http://localhost:5173`** (the frontend origin — OAuth round-trips through the Vite proxy so the session cookie is scoped to the origin the SPA runs on; using `:3000` would set the cookie on the API port and the SPA wouldn't see it). For Preview, set to the specific preview deploy URL you want to test OAuth on (see notes below). |
+| `BETTER_AUTH_URL` | single fixed shared-preview-origin value (set once in Vercel dashboard) | required | Canonical app origin for OAuth callback URLs and cookie scoping. **Local dev: `http://localhost:5173`** (the frontend origin — OAuth round-trips through the Vite proxy so the session cookie is scoped to the origin the SPA runs on; using `:3000` would set the cookie on the API port and the SPA wouldn't see it). For Preview, set to the stable shared preview origin registered in the OAuth consoles (see [Per-PR preview environments](#per-pr-preview-environments)). At runtime, `VERCEL_URL` (Vercel's per-deploy host without scheme) is a lower-priority fallback for non-OAuth verification; `BETTER_AUTH_URL` always wins when set. |
 | `GOOGLE_CLIENT_ID` | required for OAuth | required for OAuth | Google OAuth app client ID. Required for end-to-end sign-in via Google; API boots without it (Google provider is silently omitted). |
 | `GOOGLE_CLIENT_SECRET` | required for OAuth | required for OAuth | Google OAuth app client secret. |
 | `DISCORD_CLIENT_ID` | required for OAuth | required for OAuth | Discord OAuth app client ID. Required for end-to-end sign-in via Discord; API boots without it (Discord provider is silently omitted). |
@@ -121,8 +121,65 @@ Run these checks after each deploy to confirm the full web → API path is worki
 
 Both environments are same-origin from the browser's perspective for every route — including Better Auth's `/api/auth/*`. The web app always hits the API via a relative URL, which the Vite proxy resolves locally and Vercel resolves on the same deployed domain. No CORS middleware is wired on the API. If a cross-origin consumer ever appears (e.g., a native mobile client hitting prod directly, or a third-party embed), CORS will be added then with a finite allowlist and `credentials: true` — never wildcard.
 
-## Future env-var consumers
+## Per-PR preview environments
 
-These tickets will add additional environment variables:
+Every open pull request gets its own isolated Neon database branch, so reviewers can sign in, create leagues, and make picks without ever touching production data. The workflow is:
 
-- **FND-017** — Neon per-PR branch wiring (injects `DATABASE_URL` automatically for each preview deploy)
+1. **PR opened or updated (`preview-env.yml`)** — creates (or reuses) a Neon branch named `preview/pr-<number>` forked from a dedicated `preview-baseline` branch, then sets a git-branch-scoped `DATABASE_URL` env var on the Vercel project via the Vercel REST API. When Vercel's Git integration builds the preview deploy it injects this `DATABASE_URL`, and FND-020's migrate step runs against the PR's isolated branch before the new bundle goes live.
+
+2. **PR merged or closed (`preview-cleanup.yml`)** — deletes the Neon branch and the branch-scoped Vercel `DATABASE_URL` env var. No orphaned branches accumulate.
+
+### Auth on preview deploys (Option B — shared preview origin)
+
+Google OAuth requires exact-match redirect URIs; Vercel's per-PR preview URLs are random and change with every push, so they cannot be pre-registered. The solution is one stable shared preview origin registered once:
+
+- Pick a stable preview hostname (e.g. a Vercel alias like `picks-leagues-preview.vercel.app`). **This hostname must be confirmed by the human and registered in the OAuth consoles before live verification.**
+- Register `<stable-preview-origin>/api/auth/callback/google` and `.../callback/discord` once in the Google Cloud console and Discord developer portal.
+- Set `BETTER_AUTH_URL` for the **Preview** environment in the Vercel dashboard to that stable origin. This is set once; `preview-env.yml` does NOT push a per-branch `BETTER_AUTH_URL`.
+- Per-PR isolation is at the **database layer** (each PR's Neon branch), not at the frontend origin. OAuth sign-in is exercised one PR at a time through the shared preview origin.
+
+### `BETTER_AUTH_URL` runtime precedence
+
+`resolveAuthBaseURL` (in `services/api/src/auth/resolve-auth-base-url.ts`) applies this precedence:
+
+1. `deps.baseURL` (explicit override, used in tests)
+2. `process.env["BETTER_AUTH_URL"]` — wins when set, including the fixed shared-preview-origin on preview deploys
+3. `https://${process.env["VERCEL_URL"]}` — Vercel injects `VERCEL_URL` (host without scheme) into every function at runtime; used as a fallback for reaching a deploy at its raw per-deploy host for non-OAuth verification
+4. Throws with a clear error — local dev and production must have `BETTER_AUTH_URL` set explicitly
+
+### Reviewer runbook
+
+How to exercise a PR preview end-to-end:
+
+1. Wait for the `preview-env.yml` workflow to succeed and Vercel's preview build to complete. **Note:** if a brand-new PR's first preview build races ahead of `preview-env.yml` (build starts before the branch-scoped `DATABASE_URL` is set), re-trigger the Vercel build once `preview-env.yml` has finished.
+2. Open the **shared preview origin** (e.g. `https://picks-leagues-preview.vercel.app`) — not the raw per-PR `*.vercel.app` URL. OAuth callbacks are registered for the shared origin only.
+3. Sign in with Google or Discord. The session cookie is scoped to the shared preview origin.
+4. Create a league, submit picks, check standings. All writes land in the PR's Neon branch — not production.
+5. When the PR is merged or closed, `preview-cleanup.yml` deletes the Neon branch and the branch-scoped env var automatically.
+
+### Re-enabling Vercel previews (tracked post-merge step)
+
+Vercel preview deploys are currently temporarily disabled. Before the preview environment system is live, re-enable them:
+
+1. Vercel → Project → Settings → Git: confirm the GitHub repo is connected and preview deployments are enabled for PRs.
+2. Settings → Git → Ignored Build Step: set to "Automatic" (clear any custom skip command).
+3. Open a throwaway PR and confirm a preview build is triggered and `preview-env.yml` runs first.
+
+### Required secrets (provisioned post-merge)
+
+Add these as GitHub repository secrets before the workflows can run:
+
+| Secret | Required | Where to find it |
+| --- | --- | --- |
+| `NEON_API_KEY` | yes | Neon dashboard → Account settings → API keys |
+| `NEON_PROJECT_ID` | yes | Neon dashboard → Project settings |
+| `NEON_PARENT_BRANCH` | yes | Name of the Neon branch to fork previews from (create a dedicated `preview-baseline` branch — do not fork from `main`/production) |
+| `NEON_DB_ROLE` | yes | The Neon DB role name used to mint the connection string (the `username` input to `neondatabase/create-branch-action@v5`; typically the role shown in Neon console → Branch → Connection details) |
+| `NEON_DB_NAME` | no | The Neon database name; defaults to `neondb` if unset. Set only if the project's database has a different name. |
+| `VERCEL_TOKEN` | yes | Vercel dashboard → Account settings → Tokens |
+| `VERCEL_ORG_ID` | yes | Vercel dashboard → Team settings → General (Team ID) |
+| `VERCEL_PROJECT_ID` | yes | Vercel dashboard → Project settings → General (Project ID) |
+
+Also set in the Vercel dashboard for the **Preview** environment:
+- `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` — shared across all previews
+- `BETTER_AUTH_URL` — the stable shared preview origin (set once; not per-PR)

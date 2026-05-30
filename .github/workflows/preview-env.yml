@@ -1,0 +1,149 @@
+name: Preview environment — provision
+
+# Provisions a Neon branch and sets a branch-scoped DATABASE_URL in Vercel
+# so the resulting Vercel preview deploy gets an isolated database.
+#
+# OAuth (BETTER_AUTH_URL) is NOT provisioned here — it is a single fixed
+# preview-scoped value set once in Vercel's dashboard (Option B).
+# Only DATABASE_URL is per-PR.
+#
+# Required GitHub secrets (provisioned post-merge per docs/deploy.md runbook):
+#   NEON_API_KEY        — Neon API key (account settings)
+#   NEON_PROJECT_ID     — Neon project ID
+#   NEON_PARENT_BRANCH  — Neon branch name to fork from (e.g. "preview-baseline")
+#   NEON_DB_ROLE        — Neon DB role name used to mint the connection string
+#   VERCEL_TOKEN        — Vercel personal access token
+#   VERCEL_ORG_ID       — Vercel team/org ID
+#   VERCEL_PROJECT_ID   — Vercel project ID
+#
+# Optional GitHub secrets:
+#   NEON_DB_NAME        — Neon database name (defaults to "neondb" if unset)
+#
+# Until these secrets exist the workflow fails on the guard step with a clear
+# error rather than mis-provisioning anything.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+concurrency:
+  group: preview-env-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  provision:
+    name: Provision preview DB branch + Vercel env var
+    runs-on: ubuntu-latest
+    steps:
+      - name: Guard — verify required secrets are present
+        shell: bash
+        run: |
+          missing=()
+          [[ -z "$NEON_API_KEY"       ]] && missing+=("NEON_API_KEY")
+          [[ -z "$NEON_PROJECT_ID"    ]] && missing+=("NEON_PROJECT_ID")
+          [[ -z "$NEON_PARENT_BRANCH" ]] && missing+=("NEON_PARENT_BRANCH")
+          [[ -z "$NEON_DB_ROLE"       ]] && missing+=("NEON_DB_ROLE")
+          [[ -z "$VERCEL_TOKEN"       ]] && missing+=("VERCEL_TOKEN")
+          [[ -z "$VERCEL_ORG_ID"      ]] && missing+=("VERCEL_ORG_ID")
+          [[ -z "$VERCEL_PROJECT_ID"  ]] && missing+=("VERCEL_PROJECT_ID")
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "::error::Secrets not yet provisioned: ${missing[*]}"
+            echo "Follow the runbook in docs/deploy.md (§ Per-PR preview environments) to add them."
+            exit 1
+          fi
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          NEON_PARENT_BRANCH: ${{ secrets.NEON_PARENT_BRANCH }}
+          NEON_DB_ROLE: ${{ secrets.NEON_DB_ROLE }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Create or reuse Neon branch
+        id: neon
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          # Branch keyed on PR number (stable across pushes to the same PR).
+          # The Vercel env var below uses head_ref instead — different namespaces; both are intentional.
+          branch_name: preview/pr-${{ github.event.number }}
+          parent: ${{ secrets.NEON_PARENT_BRANCH }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          # username is required by the action (neondatabase/create-branch-action@v5) to mint
+          # the connection string via `neonctl cs --role-name`. Without it the action errors at runtime.
+          username: ${{ secrets.NEON_DB_ROLE }}
+          # database falls back to "neondb" (Neon's default) when NEON_DB_NAME is unset; the explicit
+          # `|| 'neondb'` avoids passing an empty string, which neonctl would reject. Override via the secret
+          # if the project's DB name differs.
+          database: ${{ secrets.NEON_DB_NAME || 'neondb' }}
+
+      - name: Upsert branch-scoped DATABASE_URL in Vercel
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          # Vercel env var keyed on head_ref (the git branch name) — Vercel's gitBranch scope uses
+          # the branch name, not the PR number. The Neon branch above uses event.number instead;
+          # both are intentional (different namespaces: Vercel branch scope vs Neon branch name).
+          PR_HEAD_REF: ${{ github.head_ref }}
+          DATABASE_URL: ${{ steps.neon.outputs.db_url_with_pooler }}
+        run: |
+          # Fail loudly if DATABASE_URL is empty — the Neon step did not produce a connection string.
+          if [[ -z "$DATABASE_URL" ]]; then
+            echo "::error::DATABASE_URL is empty; the Neon create-branch step did not output db_url_with_pooler. Check the Neon action logs."
+            exit 1
+          fi
+
+          # Delete any existing branch-scoped DATABASE_URL for this git branch
+          # (idempotent — 404 is fine on first open).
+          existing_id=$(curl -sf \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "X-Vercel-Team-Id: $VERCEL_ORG_ID" \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env?gitBranch=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$PR_HEAD_REF")&target=preview" \
+            | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          envs = data.get('envs', [])
+          match = [e['id'] for e in envs if e.get('key') == 'DATABASE_URL']
+          print(match[0] if match else '')
+          " 2>/dev/null || true)
+
+          if [[ -n "$existing_id" ]]; then
+            http_status=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "X-Vercel-Team-Id: $VERCEL_ORG_ID" \
+              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env/$existing_id")
+            if [[ "$http_status" != "200" && "$http_status" != "204" && "$http_status" != "404" ]]; then
+              echo "::error::Unexpected HTTP $http_status when deleting existing DATABASE_URL env var (id=$existing_id)."
+              exit 1
+            fi
+            echo "Deleted existing DATABASE_URL env var (id=$existing_id, HTTP $http_status)."
+          fi
+
+          # Create the new branch-scoped DATABASE_URL for this PR's Neon branch.
+          # Capture response body so failures are diagnosable. Do NOT log the request payload or DATABASE_URL.
+          response_body=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "X-Vercel-Team-Id: $VERCEL_ORG_ID" \
+            -H "Content-Type: application/json" \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
+            -d "$(python3 -c "
+          import json, sys, os
+          print(json.dumps({
+            'key': 'DATABASE_URL',
+            'value': os.environ['DATABASE_URL'],
+            'type': 'encrypted',
+            'target': ['preview'],
+            'gitBranch': os.environ['PR_HEAD_REF'],
+          }))
+          ")")
+          http_status=$(echo "$response_body" | tail -n1)
+          body=$(echo "$response_body" | head -n -1)
+          if [[ "$http_status" != "200" && "$http_status" != "201" ]]; then
+            echo "::error::Vercel API returned HTTP $http_status when setting DATABASE_URL."
+            echo "Response body: $body"
+            exit 1
+          fi
+          echo "Set DATABASE_URL for branch $PR_HEAD_REF (Neon branch preview/pr-${{ github.event.number }}, HTTP $http_status)."

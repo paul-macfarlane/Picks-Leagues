@@ -1,5 +1,5 @@
 import { memoryAdapter } from "better-auth/adapters/memory";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createAuth } from "./index";
 
@@ -17,14 +17,20 @@ describe("createAuth", () => {
     ).toThrow("BETTER_AUTH_SECRET is not set");
   });
 
-  it("throws when BETTER_AUTH_URL is missing and no override", () => {
-    expect(() =>
-      createAuth({
-        database: testDatabase,
-        secret: "test-secret-must-be-at-least-32-chars-long",
-        baseURL: "",
-      }),
-    ).toThrow("BETTER_AUTH_URL is not set");
+  it("throws when BETTER_AUTH_URL is missing and no env fallback", () => {
+    vi.stubEnv("BETTER_AUTH_URL", "");
+    vi.stubEnv("VERCEL_URL", "");
+    try {
+      expect(() =>
+        createAuth({
+          database: testDatabase,
+          secret: "test-secret-must-be-at-least-32-chars-long",
+          baseURL: "",
+        }),
+      ).toThrow("BETTER_AUTH_URL is not set");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("constructs successfully when required env overrides are provided", () => {
