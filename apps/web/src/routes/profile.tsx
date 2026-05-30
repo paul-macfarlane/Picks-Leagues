@@ -44,7 +44,7 @@ function ProfileComponent(): React.JSX.Element {
               {session && (
                 <dl className="flex flex-col gap-3">
                   <div className="flex flex-col gap-0.5">
-                    <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    <dt className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                       Name
                     </dt>
                     <dd className="text-foreground text-sm">
@@ -57,14 +57,14 @@ function ProfileComponent(): React.JSX.Element {
                   </div>
 
                   <div className="flex flex-col gap-0.5">
-                    <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    <dt className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                       Email
                     </dt>
                     <dd className="text-foreground text-sm">{session.email}</dd>
                   </div>
 
                   <div className="flex flex-col gap-0.5">
-                    <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                    <dt className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                       Email verified
                     </dt>
                     <dd className="flex items-center gap-1.5 text-sm">
@@ -90,7 +90,7 @@ function ProfileComponent(): React.JSX.Element {
 
                   {session.image && (
                     <div className="flex flex-col gap-0.5">
-                      <dt className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                      <dt className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                         Avatar
                       </dt>
                       <dd>
