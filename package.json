@@ -16,6 +16,7 @@
     "lint": "eslint . --max-warnings 0",
     "gen:api": "pnpm --filter @picksleagues/api gen:api",
     "gen:api:check": "pnpm --filter @picksleagues/api gen:api:check",
+    "db:generate:check": "pnpm --filter @picksleagues/api db:generate:check",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

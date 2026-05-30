@@ -1,0 +1,34 @@
+# Staleness gate: fails if a schema edit has no committed Drizzle migration.
+# Mirrors api-client-check.yml. drizzle-kit generate reads schema files only
+# (no DB connection), so this job needs no DATABASE_URL.
+
+name: Schema migration drift check
+
+on:
+  pull_request:
+
+jobs:
+  schema-drift-check:
+    name: Verify committed migrations match the schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: "10.33.4"
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check migrations are not stale
+        run: |
+          pnpm db:generate:check || {
+            echo "Schema has uncommitted migration changes. Run 'pnpm db:generate' and commit the result."
+            exit 1
+          }

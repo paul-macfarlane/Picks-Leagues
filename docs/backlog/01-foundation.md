@@ -230,15 +230,16 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 
 ---
 
-### FND-019 — Drizzle drift check
-**Status:** TODO
-**Description:** Post-deploy smoke test: compare `pnpm drizzle-kit generate` output (what Drizzle infers from the schema) against `src/db/migrations/` (what was actually pushed). If they differ, alert (e.g., a human added a column to the database without a migration, or the schema is out of sync). Run this in a cron job on production every 6 hours. Alert to a Discord webhook (configurable) or error-tracker.
+### FND-019 — Drizzle migration drift check (CI gate)
+**Status:** DONE
+**Description:** CI gate that catches the common foot-gun of editing `src/db/schema/` without committing the matching migration. Runs `drizzle-kit generate` on every PR and fails if it produces a new (uncommitted) migration — exactly mirroring the existing `gen:api:check` staleness gate (FND-016/017). `drizzle-kit generate` reads schema files only (no DB connection), so the check needs no database. This keeps the committed migrations in `src/db/migrations/` always in sync with the schema source.
 **Acceptance criteria:**
-- Drizzle drift detection runs in `cron/` as a scheduled Vercel Function
-- Generates migrations on the fly and diffs them against committed migrations
-- If mismatch, POST to a Discord webhook (or Slack, or Sentry — configurable env var)
-- Runs every 6 hours on production (Vercel cron)
+- `db:generate:check` script (api package + root passthrough) runs `drizzle-kit generate` and fails on an uncommitted migration diff, mirroring `gen:api:check`
+- A dedicated `schema-drift-check.yml` workflow runs it on every PR (mirrors `api-client-check.yml`)
+- Editing `schema.ts` without committing the generated migration fails the PR; a clean tree passes
+- No live database required (the check is schema-source-only)
 **Dependencies:** FND-002, FND-005
+**Notes:** Originally scoped as a production cron that introspected the live Neon DB for drift and alerted via Discord/Slack/Sentry. Descoped 2026-05-29: for a solo, pre-users MVP where all schema changes go through committed migrations and FND-020 runs migrations on every deploy, the live-DB drift cron was low-value and false-positive-prone (information_schema ↔ Drizzle snapshot type-mapping). Kept only the cheap, high-value CI guard. Revisit live-DB drift detection when there are multiple contributors or real production data to protect.
 
 ---
 

@@ -10,6 +10,7 @@
     "test": "vitest run",
     "lint": "eslint . --max-warnings 0",
     "db:generate": "drizzle-kit generate",
+    "db:generate:check": "pnpm db:generate && git -C $(git rev-parse --show-toplevel) diff --exit-code -- services/api/src/db/migrations",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "auth:generate": "npx @better-auth/cli generate",
