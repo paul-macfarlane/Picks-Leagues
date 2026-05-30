@@ -244,10 +244,10 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-020 — Production migration workflow
-**Status:** TODO
-**Description:** Database migrations must run before the API starts on Vercel (a pre-deployment hook). On deploy, `pnpm drizzle-kit push:pg` runs against the live Neon database before the API code goes live. This ensures the schema is always in sync with the running code. Fail the deployment if the migration fails (so a bad schema doesn't ship). This is the template for all future schema changes.
+**Status:** DONE
+**Description:** Database migrations must run before the API starts on Vercel (a pre-deployment hook). On deploy, the committed Drizzle migrations are applied to the live Neon database (via `pnpm --filter @picksleagues/api db:migrate`, run as the first step of `pnpm vercel:build`) before the API code goes live. This ensures the schema is always in sync with the running code. Fail the deployment if the migration fails (so a bad schema doesn't ship). This is the template for all future schema changes. (Original wording said `drizzle-kit push:pg`; superseded by the committed-migration approach to complement FND-019's drift check — see `docs/plans/fnd-020.md`.)
 **Acceptance criteria:**
-- Vercel build step includes `pnpm drizzle-kit push:pg` before API boot
+- Vercel build step runs `pnpm --filter @picksleagues/api db:migrate` (committed migrations) before API boot
 - Migration succeeds or deployment fails (no partial deploys)
 - Post-deploy, API can read and write the latest schema
 **Dependencies:** FND-002, FND-005, FND-019
