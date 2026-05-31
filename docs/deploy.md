@@ -71,7 +71,7 @@ Set these in the Vercel project under **Settings → Environment Variables**. Ve
 | --- | --- | --- | --- |
 | `DATABASE_URL` | persistent staging Neon branch (scoped to the `staging` branch) | required | Neon pooled connection string. The persistent staging preview points at a long-lived `staging` Neon branch; production uses the project's main database. See [Preview environment (persistent staging)](#preview-environment-persistent-staging). |
 | `VITE_API_BASE_URL` | leave unset | leave unset | Same-origin by default. Documented here for completeness; only set for explicit overrides (none used today). |
-| `BETTER_AUTH_SECRET` | required | required | JWT signing + cookie session secret. Generate with `openssl rand -base64 32`. Must be at least 32 chars. |
+| `BETTER_AUTH_SECRET` | required | required | JWT signing + cookie session secret. Generate with `openssl rand -base64 32`. Must be at least 32 chars. Preview and production use **different** secrets — so after branching the staging Neon DB from production you must clear the copied JWKS row (`DELETE FROM jwks;`), or Better Auth throws `Failed to decrypt private key`. See [Preview environment (persistent staging)](#preview-environment-persistent-staging). |
 | `BETTER_AUTH_URL` | stable staging origin, scoped to the `staging` branch (set once in Vercel dashboard) | required | Canonical app origin for OAuth callback URLs and cookie scoping. **Local dev: `http://localhost:5173`** (the frontend origin — OAuth round-trips through the Vite proxy so the session cookie is scoped to the origin the SPA runs on; using `:3000` would set the cookie on the API port and the SPA wouldn't see it). For Preview, set to the stable staging origin registered in the OAuth consoles (see [Preview environment (persistent staging)](#preview-environment-persistent-staging)). At runtime, `VERCEL_URL` (Vercel's per-deploy host without scheme) is a lower-priority fallback for non-OAuth verification; `BETTER_AUTH_URL` always wins when set. |
 | `GOOGLE_CLIENT_ID` | required for OAuth | required for OAuth | Google OAuth app client ID. Required for end-to-end sign-in via Google; API boots without it (Google provider is silently omitted). |
 | `GOOGLE_CLIENT_SECRET` | required for OAuth | required for OAuth | Google OAuth app client secret. |
@@ -150,6 +150,7 @@ Signed-in preview testing runs through a single, long-lived **staging** environm
    - **Auto-delete:** **disabled / Never** — the default "After 1 day" would delete your persistent environment.
    - **Branch type:** **Branch data and schema** (the default). Do *not* use "Branch schema only": it copies table structures but not the Drizzle `__drizzle_migrations` tracking rows, so the deploy-time `db:migrate` step would try to re-apply migration `0000` against already-existing tables and fail.
    - Copy the branch's **pooled** connection string (host contains `-pooler`) for the next step.
+   - **Clear the inherited JWKS row.** Branching copies production's `jwks` row, whose private key is encrypted with production's `BETTER_AUTH_SECRET`. Preview uses its own `BETTER_AUTH_SECRET`, so the staging API can't decrypt it and Better Auth throws `Failed to decrypt private key`. Run `DELETE FROM jwks;` against the new staging branch (Neon SQL console or `psql "$STAGING_DATABASE_URL" -c 'DELETE FROM jwks;'`); Better Auth regenerates a keypair encrypted with the preview secret on the next request. This must be redone every time the staging branch is re-created (see [Day-to-day workflow](#day-to-day-workflow) reset step).
 
 3. **Vercel env vars** (Settings → Environment Variables), each scoped to **Preview** + Git branch `staging`:
    - `DATABASE_URL` → the staging Neon pooled connection string
@@ -174,7 +175,7 @@ Signed-in preview testing runs through a single, long-lived **staging** environm
 1. Merge or push the change you want to preview into the `staging` branch.
 2. Vercel builds a preview deploy for `staging`; FND-020's migrate hook applies any new committed migrations to the staging Neon branch before the bundle goes live.
 3. Open `https://staging.picksleagues.com` and sign in. The origin never changes, so OAuth always works.
-4. Iterate by pushing to `staging` again. To reset the environment, branch a fresh Neon `staging` from production and repoint `DATABASE_URL`.
+4. Iterate by pushing to `staging` again. To reset the environment, branch a fresh Neon `staging` from production, repoint `DATABASE_URL`, and run `DELETE FROM jwks;` against the new branch — the freshly branched data carries production's encrypted JWKS, which the preview's `BETTER_AUTH_SECRET` can't decrypt (see one-time setup step 2 for the full explanation).
 
 ### `BETTER_AUTH_URL` runtime precedence
 
