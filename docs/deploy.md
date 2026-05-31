@@ -87,16 +87,29 @@ Important: `VITE_*` variables are baked into the SPA bundle at **build time**, n
 3. Add each variable, selecting the appropriate environment scope (Preview / Production / Development).
 4. For sensitive values (secrets, connection strings), never commit them to the repo. Only `.env.example` files belong in version control.
 
-## Deploy workflow
+## Branching and release flow
 
-1. Push a branch and open a pull request.
-2. Vercel automatically builds a preview deploy and posts the URL as a PR check.
-3. Open the preview URL and verify the home page loads and the "API status: OK" card shows the server timestamp.
-4. Merge the PR — Vercel deploys to production automatically.
+Two long-lived branches:
 
-## Verification on a fresh preview
+- **`staging`** — the integration branch. **All work targets `staging`.** It is bound to the persistent staging preview at `staging.picksleagues.com` (see [Preview environment (persistent staging)](#preview-environment-persistent-staging)).
+- **`main`** — production. Only ever updated by promoting `staging`. The pre-push hook blocks direct pushes to `main`.
 
-Run these checks after each deploy to confirm the full web → API path is working.
+### Shipping a change to staging
+
+1. Branch off an up-to-date `staging` (`pm/<ticket-id>-<desc>`), do the work, and open a PR **into `staging`** — not `main`.
+2. CI (GitHub Actions) runs on the PR. Feature branches do **not** get their own Vercel preview — only `staging` and `main` build (see the Ignored Build Step in the persistent-staging setup below).
+3. Merge the PR into `staging`. Vercel builds the staging preview and applies any new committed migrations to the staging Neon branch before the bundle goes live.
+4. Verify on `https://staging.picksleagues.com` — sign in and exercise the change.
+
+### Releasing staging to production
+
+1. Open a PR from `staging` → `main`.
+2. Merge it. Vercel deploys `main` to production automatically, applying any pending migrations to the production database first (a failed migration fails the build and keeps the current deploy serving — see [Database migrations on deploy](#database-migrations-on-deploy)).
+3. Verify production with the checks in [Verification](#verification-on-a-fresh-deploy).
+
+## Verification on a fresh deploy
+
+Run these checks against the target origin (`staging.picksleagues.com` or production) after each deploy to confirm the full web → API path is working.
 
 1. API health endpoint responds:
    ```
