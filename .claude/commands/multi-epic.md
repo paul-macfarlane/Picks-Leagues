@@ -28,7 +28,7 @@ Run multiple epics through the development pipeline. Planning happens upfront ac
 
 ## Branch setup
 
-5. Create a single multi-epic branch: `git checkout -b pm/multi-<epic-numbers-joined>-<short-summary>` (e.g., `pm/multi-01-02-03-mvp-foundation`).
+5. Create a single multi-epic branch off an up-to-date `staging` (the integration branch — never branch from `main`): `git fetch origin && git checkout -b pm/multi-<epic-numbers-joined>-<short-summary> origin/staging` (e.g., `pm/multi-01-02-03-mvp-foundation`).
 
 ## Phase 1 — All planning upfront
 

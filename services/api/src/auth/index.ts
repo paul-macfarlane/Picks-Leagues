@@ -5,6 +5,7 @@ import { jwt } from "better-auth/plugins";
 
 import { getDb } from "../db/client";
 import type { Db } from "../db/client";
+import { resolveAuthBaseURL } from "./resolve-auth-base-url";
 
 export interface AppVariables {
   user: User | null;
@@ -24,18 +25,20 @@ export interface AuthDeps {
 
 export function createAuth(deps: AuthDeps = {}) {
   const secret = deps.secret ?? process.env["BETTER_AUTH_SECRET"];
-  const baseURL = deps.baseURL ?? process.env["BETTER_AUTH_URL"];
 
   if (!secret) {
     throw new Error(
       "BETTER_AUTH_SECRET is not set. Copy services/api/.env.example to services/api/.env and set a value (generate with: openssl rand -base64 32).",
     );
   }
-  if (!baseURL) {
-    throw new Error(
-      "BETTER_AUTH_URL is not set. Copy services/api/.env.example to services/api/.env and set the canonical app origin (e.g. http://localhost:3000 for local dev).",
-    );
-  }
+
+  const baseURL = resolveAuthBaseURL(
+    { baseURL: deps.baseURL },
+    {
+      BETTER_AUTH_URL: process.env["BETTER_AUTH_URL"],
+      VERCEL_URL: process.env["VERCEL_URL"],
+    },
+  );
 
   const googleClientId = deps.googleClientId ?? process.env["GOOGLE_CLIENT_ID"];
   const googleClientSecret =
@@ -71,11 +74,22 @@ export function createAuth(deps: AuthDeps = {}) {
     database = drizzleAdapter(getDb(), { provider: "pg" });
   }
 
+  const trustedOrigins: string[] = [];
+  const vercelUrl = process.env["VERCEL_URL"];
+  if (vercelUrl) {
+    const rawVercelOrigin =
+      vercelUrl.startsWith("https://") || vercelUrl.startsWith("http://")
+        ? vercelUrl
+        : `https://${vercelUrl}`;
+    trustedOrigins.push(rawVercelOrigin);
+  }
+
   return betterAuth({
     secret,
     baseURL,
     database,
     socialProviders,
     plugins: [jwt()],
+    ...(trustedOrigins.length > 0 && { trustedOrigins }),
   });
 }

@@ -40,7 +40,7 @@ The script:
 Migrations run as the **first** step of `pnpm vercel:build` (step 1 above). This means:
 
 - **No partial deploys.** The script runs under `set -euo pipefail`. A failed migration exits non-zero, Vercel marks the build failed, and the current deployment keeps serving traffic. The new API bundle is never published.
-- **Production and preview each migrate their own `DATABASE_URL`.** Vercel injects the correct connection string for the target environment, so production and preview databases are migrated independently. (FND-022 will give each PR its own isolated Neon branch; until then, all preview deploys migrate the shared preview `DATABASE_URL`.)
+- **Production and preview each migrate their own `DATABASE_URL`.** Vercel injects the correct connection string for the target environment, so production and the persistent staging preview are migrated independently against their own Neon branches (see [Preview environment (persistent staging)](#preview-environment-persistent-staging)).
 - **Template for every schema change.** Edit the schema → run `pnpm --filter @picksleagues/api db:generate` to commit the migration (required by FND-019's CI drift check) → merge to trigger a deploy, which auto-applies the migration before the new function goes live. See `services/api/src/db/migrate.ts` for the runner and `services/api/README.md` § "Migration hygiene" for the hygiene rules.
 - **`DATABASE_URL` must be set.** If `DATABASE_URL` is absent for any Vercel environment that builds, `db:migrate` exits with a clear error message and the build fails. This is intentional — a deploy without a database target is broken and should not ship.
 
@@ -69,10 +69,10 @@ Set these in the Vercel project under **Settings → Environment Variables**. Ve
 
 | Variable | Preview | Production | Notes |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | required | required | Neon pooled connection string. FND-017 will inject the per-PR branch URL automatically for Preview. |
+| `DATABASE_URL` | persistent staging Neon branch (scoped to the `staging` branch) | required | Neon pooled connection string. The persistent staging preview points at a long-lived `staging` Neon branch; production uses the project's main database. See [Preview environment (persistent staging)](#preview-environment-persistent-staging). |
 | `VITE_API_BASE_URL` | leave unset | leave unset | Same-origin by default. Documented here for completeness; only set for explicit overrides (none used today). |
-| `BETTER_AUTH_SECRET` | required | required | JWT signing + cookie session secret. Generate with `openssl rand -base64 32`. Must be at least 32 chars. |
-| `BETTER_AUTH_URL` | required | required | Canonical app origin for OAuth callback URLs. **Local dev: `http://localhost:5173`** (the frontend origin — OAuth round-trips through the Vite proxy so the session cookie is scoped to the origin the SPA runs on; using `:3000` would set the cookie on the API port and the SPA wouldn't see it). For Preview, set to the specific preview deploy URL you want to test OAuth on (see notes below). |
+| `BETTER_AUTH_SECRET` | required | required | JWT signing + cookie session secret. Generate with `openssl rand -base64 32`. Must be at least 32 chars. Preview and production use **different** secrets — so after branching the staging Neon DB from production you must clear the copied JWKS row (`DELETE FROM jwks;`), or Better Auth throws `Failed to decrypt private key`. See [Preview environment (persistent staging)](#preview-environment-persistent-staging). |
+| `BETTER_AUTH_URL` | stable staging origin, scoped to the `staging` branch (set once in Vercel dashboard) | required | Canonical app origin for OAuth callback URLs and cookie scoping. **Local dev: `http://localhost:5173`** (the frontend origin — OAuth round-trips through the Vite proxy so the session cookie is scoped to the origin the SPA runs on; using `:3000` would set the cookie on the API port and the SPA wouldn't see it). For Preview, set to the stable staging origin registered in the OAuth consoles (see [Preview environment (persistent staging)](#preview-environment-persistent-staging)). At runtime, `VERCEL_URL` (Vercel's per-deploy host without scheme) is a lower-priority fallback for non-OAuth verification; `BETTER_AUTH_URL` always wins when set. |
 | `GOOGLE_CLIENT_ID` | required for OAuth | required for OAuth | Google OAuth app client ID. Required for end-to-end sign-in via Google; API boots without it (Google provider is silently omitted). |
 | `GOOGLE_CLIENT_SECRET` | required for OAuth | required for OAuth | Google OAuth app client secret. |
 | `DISCORD_CLIENT_ID` | required for OAuth | required for OAuth | Discord OAuth app client ID. Required for end-to-end sign-in via Discord; API boots without it (Discord provider is silently omitted). |
@@ -87,16 +87,29 @@ Important: `VITE_*` variables are baked into the SPA bundle at **build time**, n
 3. Add each variable, selecting the appropriate environment scope (Preview / Production / Development).
 4. For sensitive values (secrets, connection strings), never commit them to the repo. Only `.env.example` files belong in version control.
 
-## Deploy workflow
+## Branching and release flow
 
-1. Push a branch and open a pull request.
-2. Vercel automatically builds a preview deploy and posts the URL as a PR check.
-3. Open the preview URL and verify the home page loads and the "API status: OK" card shows the server timestamp.
-4. Merge the PR — Vercel deploys to production automatically.
+Two long-lived branches:
 
-## Verification on a fresh preview
+- **`staging`** — the integration branch. **All work targets `staging`.** It is bound to the persistent staging preview at `staging.picksleagues.com` (see [Preview environment (persistent staging)](#preview-environment-persistent-staging)).
+- **`main`** — production. Only ever updated by promoting `staging`. The pre-push hook blocks direct pushes to `main`.
 
-Run these checks after each deploy to confirm the full web → API path is working.
+### Shipping a change to staging
+
+1. Branch off an up-to-date `staging` (`pm/<ticket-id>-<desc>`), do the work, and open a PR **into `staging`** — not `main`.
+2. CI (GitHub Actions) runs on the PR. Feature branches do **not** get their own Vercel preview — only `staging` and `main` build (see the Ignored Build Step in the persistent-staging setup below).
+3. Merge the PR into `staging`. Vercel builds the staging preview and applies any new committed migrations to the staging Neon branch before the bundle goes live.
+4. Verify on `https://staging.picksleagues.com` — sign in and exercise the change.
+
+### Releasing staging to production
+
+1. Open a PR from `staging` → `main`.
+2. Merge it. Vercel deploys `main` to production automatically, applying any pending migrations to the production database first (a failed migration fails the build and keeps the current deploy serving — see [Database migrations on deploy](#database-migrations-on-deploy)).
+3. Verify production with the checks in [Verification](#verification-on-a-fresh-deploy).
+
+## Verification on a fresh deploy
+
+Run these checks against the target origin (`staging.picksleagues.com` or production) after each deploy to confirm the full web → API path is working.
 
 1. API health endpoint responds:
    ```
@@ -121,8 +134,54 @@ Run these checks after each deploy to confirm the full web → API path is worki
 
 Both environments are same-origin from the browser's perspective for every route — including Better Auth's `/api/auth/*`. The web app always hits the API via a relative URL, which the Vite proxy resolves locally and Vercel resolves on the same deployed domain. No CORS middleware is wired on the API. If a cross-origin consumer ever appears (e.g., a native mobile client hitting prod directly, or a third-party embed), CORS will be added then with a finite allowlist and `credentials: true` — never wildcard.
 
-## Future env-var consumers
+## Preview environment (persistent staging)
 
-These tickets will add additional environment variables:
+Signed-in preview testing runs through a single, long-lived **staging** environment rather than an ephemeral per-PR one. One persistent Neon branch and one stable subdomain are set up once; you preview by pushing to the `staging` git branch. This keeps OAuth working without re-registering redirect URIs or reassigning the domain for every PR.
 
-- **FND-017** — Neon per-PR branch wiring (injects `DATABASE_URL` automatically for each preview deploy)
+> **Why not per-PR previews?** Google and Discord require exact-match OAuth redirect URIs and forbid `*.vercel.app` wildcards, and a Vercel domain binds to one branch at a time — so per-PR previews would mean re-registering or reassigning the origin for every PR. A single persistent staging origin avoids that entirely. The trade-off is one shared preview database instead of an isolated branch per PR, which is fine for a small team testing one change at a time. (An earlier FND-022 design automated per-PR Neon branches via two GitHub Actions workflows; it was descoped in favor of this simpler model — see `docs/plans/fnd-022.md`. Only the `resolveAuthBaseURL` auth code from that work remains.)
+
+### One-time setup
+
+1. **Git branch.** Create a long-lived branch and push it: `git branch staging && git push -u origin staging`. You preview by pushing here; never delete it.
+
+2. **Neon `staging` branch.** In the Neon console → **Create new branch**:
+   - **Name:** `staging`
+   - **Parent branch:** `production` (a Neon branch is copy-on-write and isolated — writing to it never affects production).
+   - **Auto-delete:** **disabled / Never** — the default "After 1 day" would delete your persistent environment.
+   - **Branch type:** **Branch data and schema** (the default). Do *not* use "Branch schema only": it copies table structures but not the Drizzle `__drizzle_migrations` tracking rows, so the deploy-time `db:migrate` step would try to re-apply migration `0000` against already-existing tables and fail.
+   - Copy the branch's **pooled** connection string (host contains `-pooler`) for the next step.
+   - **Clear the inherited JWKS row.** Branching copies production's `jwks` row, whose private key is encrypted with production's `BETTER_AUTH_SECRET`. Preview uses its own `BETTER_AUTH_SECRET`, so the staging API can't decrypt it and Better Auth throws `Failed to decrypt private key`. Run `DELETE FROM jwks;` against the new staging branch (Neon SQL console or `psql "$STAGING_DATABASE_URL" -c 'DELETE FROM jwks;'`); Better Auth regenerates a keypair encrypted with the preview secret on the next request. This must be redone every time the staging branch is re-created (see [Day-to-day workflow](#day-to-day-workflow) reset step).
+
+3. **Vercel env vars** (Settings → Environment Variables), each scoped to **Preview** + Git branch `staging`:
+   - `DATABASE_URL` → the staging Neon pooled connection string
+   - `BETTER_AUTH_URL` → the stable staging origin: `https://staging.picksleagues.com`
+   - Ensure `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` exist for Preview (these can be Preview-wide).
+
+4. **Stable subdomain** (Settings → Domains): add `staging.picksleagues.com` and assign it to Git branch `staging`. If DNS is managed at GoDaddy, add the `CNAME` Vercel shows (host `staging` → `cname.vercel-dns.com`).
+
+5. **OAuth consoles** (once): register `https://staging.picksleagues.com/api/auth/callback/google` in the Google Cloud console and `https://staging.picksleagues.com/api/auth/callback/discord` in the Discord developer portal. Auth is mounted at `/api/auth/*` (`services/api/src/app.ts`).
+
+6. **Enable preview deploys, but only for `staging`.** Previews had been limited to the production branch only; re-enable them, then restrict them so *only* the `staging` branch builds a preview (not every PR/feature branch):
+   - Keep the **Preview** environment's **Branch Tracking** toggle **Enabled** (Settings → Environments → Preview). On the Hobby plan the per-branch Branch Tracking *filter* ("Branch is …") is a Pro/Enterprise feature and is not available — so leave the tracking on and restrict via the Ignored Build Step below instead.
+   - Project → **Settings → Build and Deployment** (or **Settings → Git** in some UI versions) → **Ignored Build Step** → set a custom command:
+     ```bash
+     if [ "$VERCEL_GIT_COMMIT_REF" = "main" ] || [ "$VERCEL_GIT_COMMIT_REF" = "staging" ]; then exit 1; else exit 0; fi
+     ```
+     This runs before every build. **Exit code is inverted: `exit 1` proceeds with the build, `exit 0` cancels it.** The command builds `main` (production) and `staging`, and cancels every other branch. `main` **must** stay in the condition — this step also gates production, so omitting it would stop prod deploys. `$VERCEL_GIT_COMMIT_REF` is the branch name Vercel injects at build time.
+   - Verify: push a throwaway feature branch → its deployment shows **"Canceled"** (no build); push to `staging` → it **builds** and serves at `staging.picksleagues.com`; a push to `main` still deploys to production. (GitHub Actions CI still runs on all PRs — it's independent of Vercel deploys.)
+
+### Day-to-day workflow
+
+1. Merge or push the change you want to preview into the `staging` branch.
+2. Vercel builds a preview deploy for `staging`; FND-020's migrate hook applies any new committed migrations to the staging Neon branch before the bundle goes live.
+3. Open `https://staging.picksleagues.com` and sign in. The origin never changes, so OAuth always works.
+4. Iterate by pushing to `staging` again. To reset the environment, branch a fresh Neon `staging` from production, repoint `DATABASE_URL`, and run `DELETE FROM jwks;` against the new branch — the freshly branched data carries production's encrypted JWKS, which the preview's `BETTER_AUTH_SECRET` can't decrypt (see one-time setup step 2 for the full explanation).
+
+### `BETTER_AUTH_URL` runtime precedence
+
+`resolveAuthBaseURL` (in `services/api/src/auth/resolve-auth-base-url.ts`) applies this precedence:
+
+1. `deps.baseURL` (explicit override, used in tests)
+2. `process.env["BETTER_AUTH_URL"]` — wins when set, including the fixed staging origin on preview deploys
+3. `https://${process.env["VERCEL_URL"]}` — Vercel injects `VERCEL_URL` (host without scheme) into every function at runtime; a fallback for reaching a deploy at its raw per-deploy host for non-OAuth verification
+4. Throws with a clear error — local dev and production must have `BETTER_AUTH_URL` set explicitly

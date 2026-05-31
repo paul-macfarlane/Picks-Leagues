@@ -21,7 +21,7 @@ Run these in parallel and confirm before doing anything else:
 - `git status` — see what's staged/unstaged/untracked
 - `git diff` — see unstaged changes
 - `git diff --staged` — see staged changes
-- `git log main..HEAD --oneline` — see existing commits on the branch (if any)
+- `git log staging..HEAD --oneline` — see existing commits on the branch (if any)
 - `git rev-parse --abbrev-ref HEAD` — confirm you're on the expected branch
 
 **If the current branch is `main`** — stop. Do not commit. Report the error.
@@ -71,8 +71,10 @@ EOF
 
 ## Open the PR
 
+PRs target **`staging`**, the integration branch — never `main` (production is released separately by promoting `staging` → `main`; see `docs/deploy.md` § "Branching and release flow").
+
 ```bash
-gh pr create --base main --head <branch> --title "<title>" --body "$(cat <<'EOF'
+gh pr create --base staging --head <branch> --title "<title>" --body "$(cat <<'EOF'
 ## Summary
 <1-3 bullets on what this PR does>
 

@@ -12,6 +12,7 @@ Read these as needed — don't restate them here.
 - **Code standards** — [docs/code-standards.md](docs/code-standards.md) — enforceable rules for code
 - **UI standards** — [docs/ui-design-standards.md](docs/ui-design-standards.md) — shadcn, color, mobile-first
 - **Process definition** — [process-definition.md](process-definition.md) — the workflow this harness implements
+- **Deploy runbook** — [docs/deploy.md](docs/deploy.md) — Vercel build output, env vars, deploy-time migrations, persistent staging preview
 - **Backlog** — [docs/backlog/](docs/backlog/) — 9 epics; one file per epic; tickets have IDs and per-ticket `Status:` lines
 
 ## Tech stack at a glance
@@ -45,12 +46,13 @@ Plans land in `docs/plans/<ticket-id>.md` and survive across sessions.
 
 ## Backlog and ticket status
 
-Each ticket carries a `**Status:**` line: `TODO`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `BLOCKED`. Skills update this as work moves through phases.
+Each ticket carries a `**Status:**` line: `TODO`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `BLOCKED`, `MOVED`. Skills update this as work moves through phases.
 
 To see what's in flight: `grep -rn "Status:\\*\\* IN_PROGRESS" docs/backlog/` (the SessionStart hook also surfaces this).
 
 ## Branch and commit conventions
 
+- **`staging` is the integration branch; `main` is production.** Branch off an up-to-date `staging`, and target PRs at `staging` — never `main`. Releasing to production is a `staging` → `main` PR. See [docs/deploy.md](docs/deploy.md) § "Branching and release flow".
 - Branch name: `pm/<ticket-id-lowercase>-<short-desc>` (e.g., `pm/fnd-001-monorepo-skeleton`)
 - Conventional Commits scoped by epic: `feat(pickem): ...`, `fix(elimination): ...`, `chore(foundation): ...`
 - One PR per ticket (small scope), per epic (medium), per multi-epic batch (large). Squash on merge.
@@ -60,4 +62,4 @@ To see what's in flight: `grep -rn "Status:\\*\\* IN_PROGRESS" docs/backlog/` (t
 
 - **Pre-commit:** runs `pnpm lint && pnpm typecheck` first; skipped gracefully if tooling isn't installed yet
 - **Pre-push:** blocks `git push` that targets `main` directly
-- **SessionStart:** surfaces any tickets with `Status: IN_PROGRESS`
+- **SessionStart:** surfaces any tickets with `Status: IN_PROGRESS` or `Status: BLOCKED`

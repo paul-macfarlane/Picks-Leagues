@@ -263,17 +263,18 @@ Stand up the repo, deployment, database, auth, and the API/web skeletons. Everyt
 ---
 
 ### FND-022 — Per-PR preview environments (Neon branches + OAuth)
-**Status:** TODO
+**Status:** DONE
 **Description:** Make every PR's Vercel preview deploy a fully working, isolated environment — not just a static build. FND-005 proved a preview deploy renders; this makes it usable end-to-end. Each preview gets its own Neon database branch (forked from a baseline, migrated, cleaned up when the PR closes) so previews never touch production data and can be exercised destructively. OAuth must work on the dynamic preview URL: register the Google callback so sign-in completes on `*.vercel.app` previews and the session cookie is scoped where the SPA can see it (the same `:5173`-style scoping lesson from local dev — preview frontend and API are same-origin on one Vercel project, so `BETTER_AUTH_URL` must resolve to the preview's own origin). Wire per-preview env vars (preview `DATABASE_URL` → the PR's Neon branch, `BETTER_AUTH_URL` → the preview origin) into the existing hand-rolled GHA→Vercel deploy path. This unblocks reviewers testing real flows (sign-in, create league, picks) on a PR before merge, and is a prerequisite for richer preview-based smoke tests (POL-003).
 **Acceptance criteria:**
 - On PR open/update, a Neon branch is created (forked from a baseline branch) and migrations run against it
 - The preview deploy's `DATABASE_URL` points at that PR's Neon branch; no preview ever reads/writes production data
 - Neon branch is deleted when the PR is closed/merged (no orphaned branches)
-- Google OAuth callback registered for the preview origin; sign-in completes on a `*.vercel.app` preview and the session cookie is visible to the SPA
-- `BETTER_AUTH_URL` (and any origin-dependent env) resolves to the preview's own origin per deploy
-- Env-var provisioning runs through the existing hand-rolled GHA→Vercel path (no Vercel GitHub integration button)
-- Documented runbook: how a reviewer signs in and exercises a preview, and how branches are cleaned up
+- Google OAuth callback registered once for a single stable shared preview origin (Option B — see `docs/plans/fnd-022.md`); sign-in completes on the shared preview origin and the session cookie is visible to the SPA. (Original per-deploy-`*.vercel.app` OAuth wording was superseded by Option B: per-PR isolation is at the database layer, not the frontend origin — one shared stable preview origin is registered once in the OAuth consoles.)
+- `BETTER_AUTH_URL` resolves to the single fixed shared preview origin on preview deploys; `VERCEL_URL` is a lower-priority runtime fallback for reaching a deploy at its raw per-deploy host
+- Env-var provisioning runs through a GHA workflow (`preview-env.yml`) that sets a git-branch-scoped `DATABASE_URL` on the Vercel project before Vercel's Git integration builds the preview; no Vercel GitHub integration button click required
+- Documented runbook: how a reviewer signs in via the shared preview origin and exercises a preview, and how branches are cleaned up automatically on PR close
 **Dependencies:** FND-005, FND-020
 **Notes:** Captures previously-discussed preview-environment work (per-PR Neon branches + OAuth redirect handling). See MEMORY: local OAuth `:5173` cookie-scoping lesson and "no CORS — same-origin everywhere" (preview frontend + API are one same-origin Vercel project). Prerequisite for POL-003 (production/preview smoke tests).
+**Delivered as (2026-05-30, supersedes the per-PR acceptance criteria above):** the per-PR ephemeral-environment automation was descoped in favor of a **single persistent staging preview environment**. Rationale: Google/Discord forbid `*.vercel.app` wildcard OAuth redirect URIs and a Vercel domain binds to one branch at a time, so per-PR previews would require re-registering/reassigning the OAuth origin per PR; a long-lived staging origin avoids that, and one shared preview DB is acceptable at current team size. What shipped: the `resolveAuthBaseURL` origin-resolution code (`services/api/src/auth/`) + its tests, and a persistent-staging runbook in `docs/deploy.md` (a `staging` git branch bound to `staging.picksleagues.com`, one persistent Neon `staging` branch, Preview-scoped `DATABASE_URL`/`BETTER_AUTH_URL`, previews restricted to `staging` via a Hobby-plan Ignored Build Step). The `preview-env.yml` / `preview-cleanup.yml` GHA workflows were built then removed; per-PR isolation can be revisited under POL-003 if automated preview smoke tests need it. See `docs/plans/fnd-022.md`.
 
 ---

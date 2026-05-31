@@ -37,7 +37,7 @@ After picking, **always** show the user what was selected (ID, title, epic, and 
 
 ## Branch setup
 
-6. Create the branch: `git checkout -b pm/<ticket-id-lowercase>-<short-desc>`. Derive the short-desc from the ticket title (kebab-case, ~3-5 words).
+6. Create the branch off an up-to-date `staging` (the integration branch — never branch from `main`): `git fetch origin && git checkout -b pm/<ticket-id-lowercase>-<short-desc> origin/staging`. Derive the short-desc from the ticket title (kebab-case, ~3-5 words).
 
 7. Update the ticket's `**Status:**` to `IN_PROGRESS` in the epic file (Edit tool).
 
