@@ -11,10 +11,11 @@ The source of truth for what gets built and in what order.
 ## Status values
 
 - `TODO` — not started
-- `IN PROGRESS` — work has begun, branch exists
-- `IN REVIEW` — PR open
+- `IN_PROGRESS` — work has begun, branch exists
+- `IN_REVIEW` — PR open
 - `DONE` — merged
 - `BLOCKED` — has a blocker; the blocker is noted in the ticket
+- `MOVED` — relocated to another epic; the ticket's `Status:` line notes where
 
 ## Priority order (epic-level)
 
