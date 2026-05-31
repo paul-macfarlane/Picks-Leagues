@@ -140,20 +140,27 @@ Signed-in preview testing runs through a single, long-lived **staging** environm
 
 3. **Vercel env vars** (Settings → Environment Variables), each scoped to **Preview** + Git branch `staging`:
    - `DATABASE_URL` → the staging Neon pooled connection string
-   - `BETTER_AUTH_URL` → the stable preview origin (e.g. `https://preview.picksleagues.com`)
+   - `BETTER_AUTH_URL` → the stable staging origin: `https://staging.picksleagues.com`
    - Ensure `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` exist for Preview (these can be Preview-wide).
 
-4. **Stable subdomain** (Settings → Domains): add `preview.picksleagues.com` and assign it to Git branch `staging`. If DNS is managed at GoDaddy, add the `CNAME` Vercel shows (host `preview` → `cname.vercel-dns.com`).
+4. **Stable subdomain** (Settings → Domains): add `staging.picksleagues.com` and assign it to Git branch `staging`. If DNS is managed at GoDaddy, add the `CNAME` Vercel shows (host `staging` → `cname.vercel-dns.com`).
 
-5. **OAuth consoles** (once): register `https://preview.picksleagues.com/api/auth/callback/google` in the Google Cloud console and `https://preview.picksleagues.com/api/auth/callback/discord` in the Discord developer portal. Auth is mounted at `/api/auth/*` (`services/api/src/app.ts`).
+5. **OAuth consoles** (once): register `https://staging.picksleagues.com/api/auth/callback/google` in the Google Cloud console and `https://staging.picksleagues.com/api/auth/callback/discord` in the Discord developer portal. Auth is mounted at `/api/auth/*` (`services/api/src/app.ts`).
 
-6. **Enable preview deploys.** Vercel → Project → Settings → Git: ensure non-production branches deploy (previews had been limited to the production branch only). Without this, pushes to `staging` won't build.
+6. **Enable preview deploys, but only for `staging`.** Previews had been limited to the production branch only; re-enable them, then restrict them so *only* the `staging` branch builds a preview (not every PR/feature branch):
+   - Keep the **Preview** environment's **Branch Tracking** toggle **Enabled** (Settings → Environments → Preview). On the Hobby plan the per-branch Branch Tracking *filter* ("Branch is …") is a Pro/Enterprise feature and is not available — so leave the tracking on and restrict via the Ignored Build Step below instead.
+   - Project → **Settings → Build and Deployment** (or **Settings → Git** in some UI versions) → **Ignored Build Step** → set a custom command:
+     ```bash
+     if [ "$VERCEL_GIT_COMMIT_REF" = "main" ] || [ "$VERCEL_GIT_COMMIT_REF" = "staging" ]; then exit 1; else exit 0; fi
+     ```
+     This runs before every build. **Exit code is inverted: `exit 1` proceeds with the build, `exit 0` cancels it.** The command builds `main` (production) and `staging`, and cancels every other branch. `main` **must** stay in the condition — this step also gates production, so omitting it would stop prod deploys. `$VERCEL_GIT_COMMIT_REF` is the branch name Vercel injects at build time.
+   - Verify: push a throwaway feature branch → its deployment shows **"Canceled"** (no build); push to `staging` → it **builds** and serves at `staging.picksleagues.com`; a push to `main` still deploys to production. (GitHub Actions CI still runs on all PRs — it's independent of Vercel deploys.)
 
 ### Day-to-day workflow
 
 1. Merge or push the change you want to preview into the `staging` branch.
 2. Vercel builds a preview deploy for `staging`; FND-020's migrate hook applies any new committed migrations to the staging Neon branch before the bundle goes live.
-3. Open `https://preview.picksleagues.com` and sign in. The origin never changes, so OAuth always works.
+3. Open `https://staging.picksleagues.com` and sign in. The origin never changes, so OAuth always works.
 4. Iterate by pushing to `staging` again. To reset the environment, branch a fresh Neon `staging` from production and repoint `DATABASE_URL`.
 
 ### `BETTER_AUTH_URL` runtime precedence
