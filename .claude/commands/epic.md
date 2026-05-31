@@ -40,7 +40,7 @@ After picking, **always** show the user what was selected (epic number, name, ho
 
 ## Branch setup
 
-5. Create a single epic branch: `git checkout -b pm/epic-<NN>-<short-name>` (e.g., `pm/epic-01-foundation`). All ticket commits land on this one branch.
+5. Create a single epic branch off an up-to-date `staging` (the integration branch — never branch from `main`): `git fetch origin && git checkout -b pm/epic-<NN>-<short-name> origin/staging` (e.g., `pm/epic-01-foundation`). All ticket commits land on this one branch.
 
 ## Phase 1 — Epic-level planning
 

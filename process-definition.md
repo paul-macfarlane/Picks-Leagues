@@ -28,6 +28,11 @@ merge.
 `/multi-epic` always requires explicit epic ids — the scope is too large to infer.
 Use `/multi-epic` sparingly; most work fits `/ticket` or `/epic`.
 
+All branches are cut from an up-to-date `staging`, and every PR targets `staging`
+— never `main`. `staging` is the integration branch (bound to the persistent
+staging preview); production is released by promoting `staging` → `main` via PR.
+See [docs/deploy.md](docs/deploy.md) § "Branching and release flow".
+
 ## Modes
 
 Both apply to every scope:

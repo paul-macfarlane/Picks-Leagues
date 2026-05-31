@@ -52,6 +52,7 @@ To see what's in flight: `grep -rn "Status:\\*\\* IN_PROGRESS" docs/backlog/` (t
 
 ## Branch and commit conventions
 
+- **`staging` is the integration branch; `main` is production.** Branch off an up-to-date `staging`, and target PRs at `staging` — never `main`. Releasing to production is a `staging` → `main` PR. See [docs/deploy.md](docs/deploy.md) § "Branching and release flow".
 - Branch name: `pm/<ticket-id-lowercase>-<short-desc>` (e.g., `pm/fnd-001-monorepo-skeleton`)
 - Conventional Commits scoped by epic: `feat(pickem): ...`, `fix(elimination): ...`, `chore(foundation): ...`
 - One PR per ticket (small scope), per epic (medium), per multi-epic batch (large). Squash on merge.
